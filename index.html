@@ -203,9 +203,13 @@
     <h1>Squadra Tracker</h1>
     <div class="meta" id="userMeta">Setup required — open Profile tab</div>
   </div>
-  <div style="text-align:right">
+  <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
     <div id="weekDisplay" class="meta"></div>
     <div id="phaseDisplay" class="meta"></div>
+    <button id="headerAuthBtn" onclick="showAuthOverlay()"
+      style="background:#fff; color:var(--navy); border:none; padding:4px 10px;
+      border-radius:4px; font-size:11px; font-weight:600; cursor:pointer; display:none">
+      Sign in</button>
   </div>
 </header>
 
@@ -599,6 +603,8 @@ function initCloud() {
 }
 
 function showAuthOverlay() {
+  // Clear the dismissed flag — if user is invoking this, they want it
+  try { localStorage.removeItem(AUTH_DISMISSED_KEY); } catch(e) {}
   const o = document.getElementById('authOverlay');
   if (o) o.style.display = 'flex';
 }
@@ -705,6 +711,9 @@ function scheduleCloudPush() {
 }
 
 function updateAuthUI() {
+  // Header sign-in button — show when not signed in but Supabase is available
+  const btn = document.getElementById('headerAuthBtn');
+  if (btn) btn.style.display = (sb && !currentUser) ? 'inline-block' : 'none';
   // Patch the Profile tab with sign-in / sign-out controls
   const meta = document.getElementById('userMeta');
   if (currentUser && meta && state.profile?.name) {
