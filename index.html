@@ -7,6 +7,7 @@
 <meta name="apple-mobile-web-app-title" content="Squadra" />
 <meta name="theme-color" content="#1F3864" />
 <title>Squadra Tracker</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
   :root {
     --navy:#1F3864; --blue:#2F5496; --pale:#F2F6FB; --light:#D9E2F3;
@@ -161,9 +162,41 @@
     .grid2, .grid3 { grid-template-columns: 1fr; }
     .row { gap: 6px; }
   }
+  .auth-overlay {
+    position: fixed; inset: 0; background: rgba(31, 56, 100, 0.92); z-index: 1000;
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .auth-card {
+    background: #fff; border-radius: 12px; padding: 28px 24px; max-width: 420px; width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .auth-card h2 { color: var(--navy); margin: 0 0 8px; font-size: 20px; }
+  .auth-card p { color: var(--grey); margin: 0 0 18px; font-size: 13px; line-height: 1.5; }
+  .auth-card .btn { width: 100%; margin-top: 8px; }
+  .auth-status { font-size: 12px; margin-top: 10px; padding: 8px 10px; border-radius: 4px; }
+  .auth-status.success { background: #DCF5E7; color: #156944; }
+  .auth-status.error { background: #FBE0E0; color: #8B2A2A; }
+  .auth-status.info { background: #E0EBFB; color: #1E3A6B; }
+  .sync-pill { font-size: 11px; padding: 3px 8px; border-radius: 99px; margin-left: 8px; }
+  .sync-pill.cloud { background: #DCF5E7; color: #156944; }
+  .sync-pill.local { background: #ECEEF1; color: #444; }
 </style>
 </head>
 <body>
+
+<div id="authOverlay" class="auth-overlay" style="display:none">
+  <div class="auth-card">
+    <h2>Sign in to sync across devices</h2>
+    <p>Enter your email — we'll send a magic link. No password to remember. Same email = same data, on any device.</p>
+    <label>Email</label>
+    <input type="email" id="authEmail" placeholder="you@example.com" autocomplete="email" />
+    <button class="btn" onclick="sendMagicLink()">Send magic link</button>
+    <div id="authStatus"></div>
+    <hr class="sep" style="margin:20px 0" />
+    <button class="btn secondary" onclick="skipAuth()">Skip — local-only on this browser</button>
+    <p style="margin-top:10px; font-size:11px;">Local-only mode: data stays in this browser, no sync, browser cache wipes erase it. You can sign in any time later from the Profile tab.</p>
+  </div>
+</div>
 
 <header>
   <div>
@@ -486,6 +519,10 @@
     <button class="btn" onclick="saveProfile()">Save Profile</button>
     <button class="btn secondary" onclick="loadDemoProfile()">Load Demo Profile</button>
   </div>
+  <div class="card">
+    <h2>Cloud Sync</h2>
+    <div id="cloudPanel"></div>
+  </div>
 </section>
 
 <!-- DATA / BACKUP -->
@@ -511,6 +548,181 @@
 <div class="toast" id="toast"></div>
 
 <script>
+// =============================================================================
+// SUPABASE CLOUD SYNC
+// =============================================================================
+const SUPABASE_URL = 'https://ckwzsuyxrwvhkgesblvr.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_5RUDbAxEoe7ylrynVGbesQ_cHim4UhD';
+const AUTH_DISMISSED_KEY = 'squadra-auth-dismissed';
+
+let sb = null;
+let currentUser = null;
+let cloudSyncTimer = null;
+
+function initCloud() {
+  if (!window.supabase || !SUPABASE_URL) return;
+  try {
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
+    });
+    sb.auth.onAuthStateChange((event, session) => {
+      currentUser = session?.user || null;
+      updateAuthUI();
+      if (event === 'SIGNED_IN') {
+        hideAuthOverlay();
+        cloudPullThenMerge();
+      }
+      if (event === 'SIGNED_OUT') {
+        // Clear local cache and reset state to empty so next user starts fresh
+        try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+        state = { profile: JSON.parse(JSON.stringify(EMPTY_PROFILE)), squadra: {}, strength: [], running: [], body: [], current: {}, currentWeek: 1, startDate: tomorrowISO() };
+        save();
+        renderToday();
+        renderSquadraHistory();
+        showAuthOverlay();
+      }
+    });
+    // Check existing session
+    sb.auth.getSession().then(({ data: { session } }) => {
+      currentUser = session?.user || null;
+      updateAuthUI();
+      if (currentUser) {
+        cloudPullThenMerge();
+      } else {
+        const dismissed = localStorage.getItem(AUTH_DISMISSED_KEY);
+        if (!dismissed) showAuthOverlay();
+      }
+    });
+  } catch (e) {
+    console.error('Supabase init failed', e);
+  }
+}
+
+function showAuthOverlay() {
+  const o = document.getElementById('authOverlay');
+  if (o) o.style.display = 'flex';
+}
+function hideAuthOverlay() {
+  const o = document.getElementById('authOverlay');
+  if (o) o.style.display = 'none';
+}
+function skipAuth() {
+  localStorage.setItem(AUTH_DISMISSED_KEY, '1');
+  hideAuthOverlay();
+}
+
+async function sendMagicLink() {
+  const email = document.getElementById('authEmail').value.trim();
+  const status = document.getElementById('authStatus');
+  if (!email || !email.includes('@')) {
+    status.className = 'auth-status error';
+    status.textContent = 'Enter a valid email address.';
+    return;
+  }
+  status.className = 'auth-status info';
+  status.textContent = 'Sending…';
+  try {
+    const { error } = await sb.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.href }
+    });
+    if (error) throw error;
+    status.className = 'auth-status success';
+    status.textContent = 'Magic link sent! Check your email and click the link to sign in.';
+  } catch (e) {
+    status.className = 'auth-status error';
+    status.textContent = 'Failed: ' + (e.message || e);
+  }
+}
+
+async function signOutCloud() {
+  if (!sb) return;
+  if (!confirm('Sign out? Your cloud data is safe — you can sign back in any time. Local cache will be cleared.')) return;
+  await sb.auth.signOut();
+  toast('Signed out');
+}
+
+async function cloudPullThenMerge() {
+  if (!sb || !currentUser) return;
+  try {
+    const { data, error } = await sb
+      .from('tracker_data')
+      .select('data, updated_at')
+      .eq('user_id', currentUser.id)
+      .maybeSingle();
+    if (error && error.code !== 'PGRST116') {
+      console.error('Cloud pull error', error);
+      return;
+    }
+    if (data?.data) {
+      // Cloud has data — overwrite local
+      const cloudState = data.data;
+      Object.assign(state, cloudState);
+      saveLocal();
+      renderToday();
+      renderSquadraHistory();
+      if (typeof updateHeaderMeta === 'function') updateHeaderMeta();
+      toast('Synced from cloud');
+    } else {
+      // No cloud row yet — push current local state up
+      cloudPush();
+    }
+  } catch (e) {
+    console.error('Cloud pull threw', e);
+  }
+}
+
+async function cloudPush() {
+  if (!sb || !currentUser) return;
+  const payload = {
+    profile: state.profile,
+    squadra: state.squadra,
+    strength: state.strength,
+    running: state.running,
+    body: state.body,
+    currentWeek: state.currentWeek,
+    startDate: state.startDate,
+    checks: state.checks || {},
+  };
+  try {
+    const { error } = await sb
+      .from('tracker_data')
+      .upsert({
+        user_id: currentUser.id,
+        data: payload,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_id' });
+    if (error) console.error('Cloud push error', error);
+  } catch (e) {
+    console.error('Cloud push threw', e);
+  }
+}
+
+function scheduleCloudPush() {
+  if (!currentUser) return;
+  clearTimeout(cloudSyncTimer);
+  cloudSyncTimer = setTimeout(cloudPush, 1500);
+}
+
+function updateAuthUI() {
+  // Patch the Profile tab with sign-in / sign-out controls
+  const meta = document.getElementById('userMeta');
+  if (currentUser && meta && state.profile?.name) {
+    meta.innerHTML = `${state.profile.name} <span class="sync-pill cloud">☁ ${currentUser.email}</span>`;
+  } else if (currentUser && meta) {
+    meta.innerHTML = `<span class="sync-pill cloud">☁ ${currentUser.email}</span> · Setup profile`;
+  }
+  // Update profile tab cloud panel if present
+  const cloudPanel = document.getElementById('cloudPanel');
+  if (cloudPanel) {
+    cloudPanel.innerHTML = currentUser
+      ? `<p>Signed in as <b>${currentUser.email}</b>. Data syncs automatically across devices.</p>
+         <button class="btn secondary" onclick="signOutCloud()">Sign out</button>
+         <button class="btn secondary" onclick="cloudPullThenMerge()">Force sync from cloud</button>`
+      : `<p>Not signed in — data lives only in this browser. <a href="#" onclick="showAuthOverlay();return false;">Sign in to sync</a> across devices.</p>`;
+  }
+}
+
 // =============================================================================
 // DATA LAYER
 // =============================================================================
@@ -833,12 +1045,16 @@ function load() {
     if (raw) state = { ...state, ...JSON.parse(raw) };
   } catch (e) { console.error(e); }
 }
-function save() {
+function saveLocal() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (e) {
     toast("Save failed: " + e.message);
   }
+}
+function save() {
+  saveLocal();
+  scheduleCloudPush();
 }
 
 function toast(msg) {
@@ -1555,6 +1771,8 @@ if (!state.profile) state.profile = JSON.parse(JSON.stringify(EMPTY_PROFILE));
 if (!state.profile.metrics) state.profile = JSON.parse(JSON.stringify(EMPTY_PROFILE));
 if (!state.startDate) state.startDate = tomorrowISO();
 updateHeaderMeta();
+// Boot cloud sync after a tick so the SDK is ready
+setTimeout(initCloud, 100);
 // Set today's date defaults
 ['sDate','rDate','bDate'].forEach(id => {
   const el = document.getElementById(id);
