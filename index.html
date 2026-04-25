@@ -127,6 +127,22 @@
     font-weight: normal; text-align: left; cursor: pointer; line-height: 1.45;
   }
   .checklist li.done label { text-decoration: line-through; color: var(--grey); }
+  .rec-list { margin: 4px 0 8px; }
+  .rec-item {
+    padding: 10px 12px; margin-bottom: 6px; border-radius: 6px;
+    border-left: 4px solid var(--grey2); background: #FAFBFC;
+    font-size: 13px;
+  }
+  .rec-item.rec-green { border-left-color: var(--green); background: #ECFAF3; }
+  .rec-item.rec-yellow { border-left-color: var(--yellow); background: #FCF6E0; }
+  .rec-item.rec-red { border-left-color: var(--red); background: #FCECEC; }
+  .rec-item.rec-grey { border-left-color: var(--grey2); background: #F4F5F7; }
+  .rec-name { font-weight: 600; color: var(--navy); margin-bottom: 2px; }
+  .rec-name .rec-target {
+    font-weight: normal; color: var(--grey); font-size: 11px; margin-left: 8px;
+  }
+  .rec-text { color: #333; line-height: 1.4; }
+  .rec-text b { color: var(--navy); font-size: 14px; }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
   .stat { text-align: center; padding: 10px; background: var(--pale); border-radius: 6px; }
@@ -152,7 +168,7 @@
 <header>
   <div>
     <h1>Squadra Tracker</h1>
-    <div class="meta">Ryan · 49→50 · 28-week plan</div>
+    <div class="meta" id="userMeta">Setup required — open Profile tab</div>
   </div>
   <div style="text-align:right">
     <div id="weekDisplay" class="meta"></div>
@@ -168,6 +184,7 @@
   <button data-tab="body">Body</button>
   <button data-tab="progress">Progress</button>
   <button data-tab="plan">Plan</button>
+  <button data-tab="profile">Profile</button>
   <button data-tab="data">Backup</button>
 </nav>
 
@@ -207,11 +224,16 @@
     <div class="row">
       <div><label>Lift</label>
         <select id="qLift">
-          <option>Back Squat</option><option>Hex Bar DL</option><option>Bench Press</option>
-          <option>HR Push-ups</option><option>Strict Pull-ups</option><option>1000m Row</option>
-          <option>Plank</option><option>Dead Hang</option><option>Front Squat</option>
-          <option>Bent Row</option><option>Incline DB Press</option><option>OHP</option>
-          <option>Lat Pulldown</option><option>Hip Thrust</option><option>Other</option>
+          <option>Trap Bar Squat</option><option>Trap Bar DL</option><option>DB Bench Press</option>
+          <option>DB Overhead Press</option><option>HR Push-ups</option><option>Strict Pull-ups</option>
+          <option>1000m Row</option><option>Plank</option><option>Weighted Plank</option><option>Dead Hang</option>
+          <option>Bulgarian Split Squat</option><option>One-Arm DB Row</option><option>TRX Inverted Row</option>
+          <option>DB Incline Press</option><option>DB Fly</option><option>DB RDL</option><option>DB Hip Thrust</option>
+          <option>DB Walking Lunge</option><option>DB Close-Grip Floor Press</option><option>DB Lateral Raises</option>
+          <option>TRX Dips</option><option>EZ-Bar Curl</option><option>Hammer Curls</option>
+          <option>DB Calf Raises</option><option>Farmer Carry</option>
+          <option>Hanging Leg Raises</option><option>Ab Wheel</option><option>Face Pulls</option>
+          <option>Band Pull-Aparts</option><option>Other</option>
         </select>
       </div>
       <div><label>Set #</label><input type="text" id="qSet" placeholder="1" /></div>
@@ -295,15 +317,16 @@
     <div class="row">
       <div><label>Lift</label>
         <select id="sLift">
-          <option>Back Squat</option><option>Hex Bar DL</option><option>Bench Press</option>
-          <option>HR Push-ups</option><option>Strict Pull-ups</option><option>1000m Row</option>
-          <option>Plank</option><option>Dead Hang</option><option>Front Squat</option>
-          <option>Bent Row</option><option>Incline DB Press</option><option>OHP</option>
-          <option>Lat Pulldown</option><option>Hip Thrust</option><option>Walking Lunge</option>
-          <option>Close-Grip Bench</option><option>Pushdowns</option><option>Overhead Tri Ext</option>
-          <option>Weighted Dip</option><option>Cable/DB Fly</option><option>BB Curl</option>
-          <option>Hammer Curl</option><option>Lateral Raise</option><option>Calf Raise</option>
-          <option>Other</option>
+          <option>Trap Bar Squat</option><option>Trap Bar DL</option><option>DB Bench Press</option>
+          <option>DB Overhead Press</option><option>HR Push-ups</option><option>Strict Pull-ups</option>
+          <option>1000m Row</option><option>Plank</option><option>Weighted Plank</option><option>Dead Hang</option>
+          <option>Bulgarian Split Squat</option><option>One-Arm DB Row</option><option>TRX Inverted Row</option>
+          <option>DB Incline Press</option><option>DB Fly</option><option>DB RDL</option><option>DB Hip Thrust</option>
+          <option>DB Walking Lunge</option><option>DB Close-Grip Floor Press</option><option>DB Lateral Raises</option>
+          <option>TRX Dips</option><option>EZ-Bar Curl</option><option>Hammer Curls</option>
+          <option>DB Calf Raises</option><option>Farmer Carry</option>
+          <option>Hanging Leg Raises</option><option>Ab Wheel</option><option>Face Pulls</option>
+          <option>Band Pull-Aparts</option><option>Other</option>
         </select>
       </div>
       <div><label>Set #</label><input type="text" id="sSet" /></div>
@@ -432,6 +455,39 @@
   </div>
 </section>
 
+<!-- PROFILE -->
+<section id="tab-profile" class="tab" style="display:none">
+  <div class="card">
+    <h2>Your Profile</h2>
+    <p class="help">All your baseline numbers and target goals. Everything else in the app — header, progress bars, recommended weights, diet phases — derives from this.</p>
+    <div class="row">
+      <div><label>Name</label><input type="text" id="pName" /></div>
+      <div><label>Age</label><input type="number" id="pAge" /></div>
+      <div><label>Sex</label>
+        <select id="pSex"><option>M</option><option>F</option><option>Other</option></select>
+      </div>
+    </div>
+    <div class="row">
+      <div><label>Body weight (lb)</label><input type="number" id="pWeight" step="0.5" /></div>
+      <div><label>Body fat % (current)</label><input type="number" id="pBF" step="0.1" /></div>
+      <div><label>Plan length (weeks)</label><input type="number" id="pPlanWeeks" min="4" max="52" /></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Baselines & Targets</h2>
+    <p class="help">Enter your starting numbers (Baseline) and the values that count as Green / Hard / Stretch goals. The Hard column is your primary target.</p>
+    <div style="overflow-x:auto"><table id="pMetricsTable">
+      <thead><tr><th>Metric</th><th>Baseline</th><th>Green</th><th>Hard</th><th>Stretch</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+    <p class="help" style="margin-top:14px">Lifts in lb. Times in seconds (1000m row, plank, dead hang, mile). VO2 max in ml/kg/min. Body fat in %.</p>
+  </div>
+  <div class="card">
+    <button class="btn" onclick="saveProfile()">Save Profile</button>
+    <button class="btn secondary" onclick="loadDemoProfile()">Load Demo Profile</button>
+  </div>
+</section>
+
 <!-- DATA / BACKUP -->
 <section id="tab-data" class="tab" style="display:none">
   <div class="card">
@@ -468,33 +524,33 @@ const PHASE_BY_WEEK = {
 };
 
 const SCHEDULE = {
-  Mon: { focus: "Lower A + Bench Vol + Push-ups + Plank", time: "75 min",
+  Mon: { focus: "Lower A + DB Bench Vol + Push-ups + Plank + Side Delts", time: "75 min",
     items: ["Warmup 7 min (general → dynamic → ramp sets)",
-            "A1: Back Squat 5×5 (RPE 7)",
+            "A1: Trap bar squat 5×5 (RPE 7) — narrow stance, deep hip flexion",
             "A2: Plank 3×max-hold (between A1 sets)",
-            "B1: Bench Press 4×6 (RPE 7)",
-            "B2: Walking lunges 3×10/leg",
+            "B1: DB bench press 4×6 (RPE 7) — heaviest pair; if 80s feel light, do 5×6",
+            "B2: DB walking lunges 3×10/leg (50–70 lb DBs)",
             "C: HR Push-ups 3×(max-3)",
-            "D Flex 15 min: Close-grip bench 3×8 + Rope pushdowns 3×12",
+            "D Flex 15 min: DB close-grip floor press 3×8 + DB lateral raises 4×12",
             "GTG pull-ups: 4-6 sets ~50% max throughout day"]
   },
-  Tue: { focus: "VO2 + Pull + Row + Grip", time: "75 min",
+  Tue: { focus: "VO2 + Pull + Row + Grip + Biceps + Rear Delts", time: "75 min",
     items: ["Warmup 7 min",
             "Norwegian 4×4 on rower: 4×(4 min @ 90-95% HRmax / 3 min easy) = 28 min",
             "A: Strict pull-ups 4×(max-2)",
             "B: 1000m row training: 3×500m @ goal pace, 90 sec rest",
             "C: Farmer carry 4×40m heavy",
-            "D Flex 15 min: HLR 3×12 + Ab wheel 3×10 + Face pulls 3×15",
+            "D Flex 15 min: Face pulls 3×15 + Hammer curls 3×10 + Hanging leg raises 3×12",
             "GTG pull-ups throughout day"]
   },
-  Wed: { focus: "Lower B + Bench Int + Push-ups + Wtd Plank", time: "75 min",
+  Wed: { focus: "Lower B + DB Bench Int + Push-ups + Upper Chest", time: "75 min",
     items: ["Warmup 7 min",
-            "A1: Hex bar DL 5×3 (RPE 8)",
+            "A1: Trap bar DL 5×3 (RPE 8)",
             "A2: HR Push-ups 3×max (between A1)",
-            "B1: Bench Press 4×3 (RPE 8)",
-            "B2: Bent-over barbell row 4×8",
-            "C: Weighted plank 3×max",
-            "D Flex 15 min: Incline DB 3×8-10 + DB fly 3×12",
+            "B1: DB bench press 4×3 (RPE 8) — heaviest DBs available",
+            "B2: One-arm DB row 4×8/side (heavy)",
+            "C: Weighted plank 3×max (DB on back)",
+            "D Flex 15 min: DB Incline Press 3×8-10 + DB fly 3×12",
             "GTG pull-ups throughout day"]
   },
   Thu: { focus: "Aerobic recovery (no strength)", time: "65 min",
@@ -504,33 +560,39 @@ const SCHEDULE = {
             "Light mobility (banked S&R)",
             "GTG pull-ups optional, low volume"]
   },
-  Fri: { focus: "Squat Int + Pull 2 + Row 2 + Grip 2", time: "75 min",
+  Fri: { focus: "Squat Int + Pull 2 + Row 2 + Grip + Tris + Calves", time: "75 min",
     items: ["Warmup 7 min",
-            "A1: Back Squat 4×3 (RPE 8)",
-            "A2: Front squat 3×6 (alt sets)",
+            "A1: Trap bar squat 4×3 (RPE 8) — heavy",
+            "A2: Bulgarian split squat 3×6/leg with 2×80 lb DBs",
             "B: Strict pull-ups 3×max",
             "C: 1000m Row test (every 4th wk) OR 3×500m @ pace",
             "D: Dead hang 3×max",
-            "E Flex 15 min: Weighted dips 3×6-8 + Overhead tri ext 3×10",
+            "E Flex 15 min: TRX dips 3×8 + Standing DB calf raises 4×15",
             "GTG pull-ups throughout day"]
   },
-  Sat: { focus: "Long Bike + 4×4 embedded + DL Primer", time: "150 min",
+  Sat: { focus: "Long Bike + 4×4 embedded + Trap Bar DL Primer", time: "150 min",
     items: ["Warmup",
-            "Hex bar DL 3×5 @ 65% — light technical primer (NOT a heavy day)",
+            "Trap bar DL 3×5 @ 65% — light technical primer (NOT a heavy day)",
             "5 min transition to bike",
-            "Bike: 12 min Z2 warmup",
+            "Bike (Peloton or road): 12 min Z2 warmup",
             "Norwegian 4×4: 4×(4 min @ 90-95% / 3 min easy) = 28 min",
             "60 min Z2",
             "18 min cooldown",
             "Eat ~50g carb pre, ~40g intra during first 45 min"]
   },
-  Sun: { focus: "Quality Run + Accessory Block", time: "120 min",
+  Sun: { focus: "Quality Run + Comprehensive Accessory Block", time: "120 min",
     items: ["Warmup",
             "30 min run per progression (see Plan tab)",
-            "Accessory 75 min: OHP 4×8 + Cable row 4×10 + Lat pulldown 3×10",
-            "  + Hip thrust 3×12 + Lat raises 3×12",
-            "  + BB curl 3×10 + Hammer curls 3×10",
-            "  + Calves 4×15 + Band pull-aparts 3×20",
+            "—— Accessory 75 min (home gym): ——",
+            "DB Overhead Press 4×8 (front delts)",
+            "TRX inverted row 4×10 (mid back)",
+            "DB RDL 3×10 with 2×80 lb DBs (hamstring iso)",
+            "DB hip thrust 3×12 (single 80 lb DB on hips)",
+            "DB lateral raises 4×12 (more side delts)",
+            "EZ-bar curl 4×10 (biceps)",
+            "Standing DB calf raises 4×15 (more calves)",
+            "Ab wheel 3×10 (core)",
+            "Band pull-aparts 3×20 (rear delts/scap health)",
             "10 min cooldown stretch"]
   },
 };
@@ -569,19 +631,175 @@ const DIET_PHASES = [
   ["Phase 5 (27-28)","2,750 (maint)","200 g","330 g","80 g","Taper week"],
 ];
 
-const TARGETS = [
-  {k:"squat", name:"Back Squat (lb)", base:225, green:315, hard:365, stretch:385, dir:"up"},
-  {k:"dl", name:"Hex Bar DL (lb)", base:355, green:405, hard:445, stretch:475, dir:"up"},
-  {k:"bench", name:"Bench Press (lb)", base:225, green:245, hard:260, stretch:275, dir:"up"},
-  {k:"pushup", name:"HR Push-ups (2 min)", base:65, green:70, hard:75, stretch:85, dir:"up"},
-  {k:"pullup", name:"Strict Pull-ups", base:11, green:14, hard:16, stretch:20, dir:"up"},
-  {k:"row", name:"1000m Row (sec)", base:210, green:215, hard:205, stretch:195, dir:"down"},
-  {k:"plank", name:"Plank (sec)", base:360, green:360, hard:360, stretch:360, dir:"up"},
-  {k:"hang", name:"Dead Hang (sec)", base:85, green:95, hard:105, stretch:120, dir:"up"},
-  {k:"mile", name:"Mile (sec)", base:490, green:440, hard:420, stretch:405, dir:"down"},
-  {k:"vo2", name:"VO2 max", base:41, green:44, hard:46, stretch:48, dir:"up"},
-  {k:"bf", name:"Body fat %", base:16, green:12, hard:10, stretch:8, dir:"down"},
+// Metric definitions — direction tells progress whether higher or lower is better
+const METRICS = [
+  {k:"squat",  name:"Back Squat (lb)",   dir:"up"},
+  {k:"dl",     name:"Hex Bar DL (lb)",   dir:"up"},
+  {k:"bench",  name:"Bench Press (lb)",  dir:"up"},
+  {k:"pushup", name:"HR Push-ups (2 min)", dir:"up"},
+  {k:"pullup", name:"Strict Pull-ups",   dir:"up"},
+  {k:"row",    name:"1000m Row (sec)",   dir:"down"},
+  {k:"plank",  name:"Plank (sec)",       dir:"up"},
+  {k:"hang",   name:"Dead Hang (sec)",   dir:"up"},
+  {k:"mile",   name:"Mile (sec)",        dir:"down"},
+  {k:"vo2",    name:"VO2 max",           dir:"up"},
+  {k:"bf",     name:"Body fat %",        dir:"down"},
 ];
+
+// Demo profile (Ryan's setup) — used as default and loadable for demos
+const DEMO_PROFILE = {
+  name: "Ryan", age: 49, sex: "M", weight: 180, bf: 16, planWeeks: 28,
+  metrics: {
+    squat:  { base: 225, green: 315, hard: 365, stretch: 385 },
+    dl:     { base: 355, green: 405, hard: 445, stretch: 475 },
+    bench:  { base: 225, green: 245, hard: 260, stretch: 275 },
+    pushup: { base: 65,  green: 70,  hard: 75,  stretch: 85 },
+    pullup: { base: 11,  green: 14,  hard: 16,  stretch: 20 },
+    row:    { base: 210, green: 215, hard: 205, stretch: 195 },
+    plank:  { base: 360, green: 360, hard: 360, stretch: 360 },
+    hang:   { base: 85,  green: 95,  hard: 105, stretch: 120 },
+    mile:   { base: 490, green: 440, hard: 420, stretch: 405 },
+    vo2:    { base: 41,  green: 44,  hard: 46,  stretch: 48 },
+    bf:     { base: 16,  green: 12,  hard: 10,  stretch: 8 },
+  },
+};
+
+// Empty profile for new users
+const EMPTY_PROFILE = {
+  name: "", age: null, sex: "M", weight: null, bf: null, planWeeks: 28,
+  metrics: METRICS.reduce((acc, m) => {
+    acc[m.k] = { base: null, green: null, hard: null, stretch: null };
+    return acc;
+  }, {}),
+};
+
+// Compute the TARGETS array (used by Progress tab and other places) from profile
+function getTargets() {
+  const p = state.profile || EMPTY_PROFILE;
+  return METRICS.map(m => {
+    const t = p.metrics[m.k] || {};
+    return {
+      k: m.k, name: m.name, dir: m.dir,
+      base: t.base ?? 0, green: t.green ?? 0, hard: t.hard ?? 0, stretch: t.stretch ?? 0
+    };
+  });
+}
+
+// =============================================================================
+// PROGRESSION ENGINE — when to move up, what to lift next
+// =============================================================================
+// schemes[day]: { sets, reps, rpe } — target performance for that day
+// inc: lb to add when crossing the green threshold
+// dbInc: per-DB increment (5 = move from 60s to 65s, etc.) — for DB lifts
+// repBased: bodyweight/timed lifts where progression = more reps/seconds, not weight
+const PROGRESSION = {
+  'Trap Bar Squat': { inc: 10, schemes: { Mon: {sets:5, reps:5, rpe:7}, Fri: {sets:4, reps:3, rpe:8} } },
+  'Trap Bar DL':    { inc: 10, schemes: { Wed: {sets:5, reps:3, rpe:8}, Sat: {sets:3, reps:5, rpe:5} } },
+  'DB Bench Press': { inc: 5,  isDB: true, schemes: { Mon: {sets:4, reps:6, rpe:7}, Wed: {sets:4, reps:3, rpe:8} } },
+  'DB Overhead Press': { inc: 5, isDB: true, schemes: { Sun: {sets:4, reps:8, rpe:7} } },
+  'DB RDL':         { inc: 5,  isDB: true, schemes: { Sun: {sets:3, reps:10, rpe:7} } },
+  'DB Hip Thrust':  { inc: 5,  schemes: { Sun: {sets:3, reps:12, rpe:7} } },
+  'One-Arm DB Row': { inc: 5,  isDB: true, schemes: { Wed: {sets:4, reps:8, rpe:7} } },
+  'TRX Inverted Row': { inc: 0, schemes: { Sun: {sets:4, reps:10, rpe:7} }, repBased: true, repInc: 1 },
+  'Bulgarian Split Squat': { inc: 5, isDB: true, schemes: { Fri: {sets:3, reps:6, rpe:7} } },
+  'DB Walking Lunge': { inc: 5, isDB: true, schemes: { Mon: {sets:3, reps:10, rpe:6} } },
+  'DB Lateral Raises': { inc: 2.5, isDB: true, schemes: { Mon: {sets:4, reps:12, rpe:8}, Sun: {sets:4, reps:12, rpe:8} } },
+  'Hammer Curls':   { inc: 5,  isDB: true, schemes: { Tue: {sets:4, reps:10, rpe:8} } },
+  'EZ-Bar Curl':    { inc: 5,  schemes: { Sun: {sets:4, reps:10, rpe:8} } },
+  'DB Calf Raises': { inc: 5,  isDB: true, schemes: { Fri: {sets:4, reps:15, rpe:8}, Sun: {sets:4, reps:15, rpe:8} } },
+  'DB Close-Grip Floor Press': { inc: 5, isDB: true, schemes: { Mon: {sets:3, reps:8, rpe:8} } },
+  'TRX Dips':       { inc: 0,  repBased: true, repInc: 1, schemes: { Fri: {sets:3, reps:8, rpe:8} } },
+  'DB Incline Press': { inc: 5, isDB: true, schemes: { Wed: {sets:3, reps:9, rpe:8} } },
+  'DB Fly':         { inc: 2.5, isDB: true, schemes: { Wed: {sets:3, reps:12, rpe:8} } },
+  'Farmer Carry':   { inc: 5,  isDB: true, schemes: { Tue: {sets:4, reps:1, rpe:8, distance:'40m'} } },
+  // Bodyweight / timed (rep-based progression)
+  'HR Push-ups':    { repBased: true, schemes: { Mon: {sets:3, repsAdd:'-3 from max'}, Wed: {sets:3, repsAdd:'max'} } },
+  'Strict Pull-ups':{ repBased: true, schemes: { Tue: {sets:4, repsAdd:'-2 from max'}, Fri: {sets:3, repsAdd:'max'} } },
+  'Plank':          { repBased: true, timed: true, schemes: { Mon: {sets:3, repsAdd:'max'} } },
+  'Weighted Plank': { repBased: true, timed: true, schemes: { Wed: {sets:3, repsAdd:'max'} } },
+  'Dead Hang':      { repBased: true, timed: true, schemes: { Fri: {sets:3, repsAdd:'max'} } },
+  'Hanging Leg Raises': { repBased: true, schemes: { Tue: {sets:3, reps:12, rpe:8} } },
+  'Ab Wheel':       { repBased: true, schemes: { Sun: {sets:3, reps:10, rpe:8} } },
+};
+
+// Group log entries by date (= one session)
+function sessionsForLift(lift) {
+  const entries = state.strength.filter(s => s.lift === lift && (s.weight || s.reps));
+  const byDate = {};
+  entries.forEach(e => {
+    const key = `${e.date}_${e.day || ''}`;
+    if (!byDate[key]) byDate[key] = { date: e.date, day: e.day, sets: [] };
+    byDate[key].sets.push(e);
+  });
+  return Object.values(byDate).sort((a,b) => a.date.localeCompare(b.date));
+}
+
+function getRecommendation(lift, day) {
+  const cfg = PROGRESSION[lift];
+  if (!cfg) return null;
+  const scheme = cfg.schemes[day] || Object.values(cfg.schemes)[0];
+  if (!scheme) return null;
+
+  const sessions = sessionsForLift(lift);
+  // For weight progression, only look at sessions on the SAME day (same prescribed scheme)
+  const sameDaySessions = sessions.filter(s => s.day === day);
+
+  if (cfg.repBased && !cfg.timed) {
+    if (!sameDaySessions.length) return { text: `Test max — first session`, status: 'grey' };
+    const last = sameDaySessions[sameDaySessions.length - 1];
+    const maxReps = Math.max(...last.sets.map(s => s.reps || 0));
+    return { text: `Last: ${maxReps} reps · Beat it by 1`, status: 'green' };
+  }
+  if (cfg.timed) {
+    if (!sameDaySessions.length) return { text: `Hold for max time`, status: 'grey' };
+    const last = sameDaySessions[sameDaySessions.length - 1];
+    const maxSec = Math.max(...last.sets.map(s => s.reps || 0));
+    return { text: `Last: ${maxSec}s · Beat by 5s`, status: 'green' };
+  }
+
+  if (!sameDaySessions.length) {
+    return { text: `${scheme.sets}×${scheme.reps} @ RPE ${scheme.rpe}. No history — start light.`, status: 'grey' };
+  }
+
+  const last = sameDaySessions[sameDaySessions.length - 1];
+  const lastWeight = last.sets[0].weight || 0;
+  const repsHit = last.sets.every(s => (s.reps || 0) >= scheme.reps);
+  const rpeEntries = last.sets.filter(s => s.rpe).map(s => s.rpe);
+  const avgRPE = rpeEntries.length ? rpeEntries.reduce((a,b)=>a+b,0) / rpeEntries.length : null;
+  const dbStr = cfg.isDB ? ` (per DB)` : '';
+
+  if (repsHit && avgRPE !== null && avgRPE <= scheme.rpe) {
+    const w = lastWeight + cfg.inc;
+    return {
+      text: `Hit ${scheme.sets}×${scheme.reps} @ RPE ${avgRPE.toFixed(1)}. → <b>${w}${dbStr}</b> next session (+${cfg.inc} lb)`,
+      status: 'green', weight: w
+    };
+  }
+  if (repsHit && avgRPE !== null && avgRPE <= scheme.rpe + 1) {
+    return {
+      text: `Hit reps but RPE ${avgRPE.toFixed(1)} (target ${scheme.rpe}). → <b>${lastWeight}${dbStr}</b> repeat`,
+      status: 'yellow', weight: lastWeight
+    };
+  }
+  if (!repsHit) {
+    const w = Math.round((lastWeight - cfg.inc) / 2.5) * 2.5;
+    return {
+      text: `Missed reps last session. → <b>${w}${dbStr}</b> back off`,
+      status: 'red', weight: w
+    };
+  }
+  return {
+    text: `Last: ${lastWeight}${dbStr} × ${last.sets[0].reps} (no RPE). → <b>${lastWeight}</b> repeat, log RPE this time`,
+    status: 'grey', weight: lastWeight
+  };
+}
+
+function getTodaysLifts(day) {
+  // Return the lifts in PROGRESSION that have a scheme for this day
+  return Object.entries(PROGRESSION)
+    .filter(([_, cfg]) => cfg.schemes[day])
+    .map(([name, cfg]) => ({ name, scheme: cfg.schemes[day], cfg }));
+}
 
 function tomorrowISO() {
   const d = new Date(); d.setDate(d.getDate() + 1);
@@ -589,6 +807,7 @@ function tomorrowISO() {
 }
 
 let state = {
+  profile: JSON.parse(JSON.stringify(EMPTY_PROFILE)),
   squadra: {},     // {weekNum: {bs, dl, bp, ...}}
   strength: [],    // [{date, wk, day, lift, set, weight, reps, rpe, notes}]
   running: [],
@@ -646,9 +865,74 @@ document.querySelectorAll('nav button').forEach(btn => {
     if (btn.dataset.tab === 'body') { renderBodyLog(); drawBodyChart(); }
     if (btn.dataset.tab === 'progress') renderProgress();
     if (btn.dataset.tab === 'plan') renderPlan();
+    if (btn.dataset.tab === 'profile') renderProfile();
     if (btn.dataset.tab === 'data') renderDataStats();
   });
 });
+
+// =============================================================================
+// PROFILE
+// =============================================================================
+function updateHeaderMeta() {
+  const p = state.profile || {};
+  const meta = document.getElementById('userMeta');
+  if (!p.name) {
+    meta.textContent = 'Setup required — open Profile tab';
+    return;
+  }
+  const ageStr = p.age ? `${p.age}→${p.age + 1}` : '';
+  const weeks = p.planWeeks || 28;
+  meta.textContent = `${p.name}${ageStr ? ' · ' + ageStr : ''} · ${weeks}-week plan`;
+}
+
+function renderProfile() {
+  const p = state.profile;
+  document.getElementById('pName').value = p.name || '';
+  document.getElementById('pAge').value = p.age ?? '';
+  document.getElementById('pSex').value = p.sex || 'M';
+  document.getElementById('pWeight').value = p.weight ?? '';
+  document.getElementById('pBF').value = p.bf ?? '';
+  document.getElementById('pPlanWeeks').value = p.planWeeks || 28;
+
+  const tbody = document.querySelector('#pMetricsTable tbody');
+  tbody.innerHTML = METRICS.map(m => {
+    const t = p.metrics[m.k] || {};
+    return `<tr>
+      <td>${m.name}</td>
+      <td><input type="number" step="0.1" data-k="${m.k}" data-f="base" value="${t.base ?? ''}" style="width:80px" /></td>
+      <td><input type="number" step="0.1" data-k="${m.k}" data-f="green" value="${t.green ?? ''}" style="width:80px" /></td>
+      <td><input type="number" step="0.1" data-k="${m.k}" data-f="hard" value="${t.hard ?? ''}" style="width:80px" /></td>
+      <td><input type="number" step="0.1" data-k="${m.k}" data-f="stretch" value="${t.stretch ?? ''}" style="width:80px" /></td>
+    </tr>`;
+  }).join('');
+}
+
+function saveProfile() {
+  const p = state.profile;
+  p.name = document.getElementById('pName').value.trim();
+  p.age = +document.getElementById('pAge').value || null;
+  p.sex = document.getElementById('pSex').value;
+  p.weight = +document.getElementById('pWeight').value || null;
+  p.bf = +document.getElementById('pBF').value || null;
+  p.planWeeks = +document.getElementById('pPlanWeeks').value || 28;
+  document.querySelectorAll('#pMetricsTable input[data-k]').forEach(inp => {
+    const k = inp.dataset.k, f = inp.dataset.f;
+    if (!p.metrics[k]) p.metrics[k] = {};
+    p.metrics[k][f] = inp.value === '' ? null : +inp.value;
+  });
+  save();
+  updateHeaderMeta();
+  toast('Profile saved');
+}
+
+function loadDemoProfile() {
+  if (!confirm('Load the demo profile (Ryan)? Your existing logs are preserved; only profile values change.')) return;
+  state.profile = JSON.parse(JSON.stringify(DEMO_PROFILE));
+  save();
+  renderProfile();
+  updateHeaderMeta();
+  toast('Demo profile loaded');
+}
 
 // =============================================================================
 // TODAY
@@ -687,8 +971,30 @@ function renderToday() {
 
   const sched = SCHEDULE[day];
   const c = document.getElementById('todayContent');
+
+  // Build recommendations card for today's lifts
+  const todaysLifts = getTodaysLifts(day);
+  const recsHtml = todaysLifts.length ? `
+    <h3 style="margin:14px 0 6px; font-size:14px; color:var(--blue);">Lift recommendations</h3>
+    <p class="help">Based on your last performance of each lift on ${day}.</p>
+    <div class="rec-list">
+      ${todaysLifts.map(({name, scheme}) => {
+        const rec = getRecommendation(name, day);
+        if (!rec) return '';
+        const setsReps = scheme.sets ? `${scheme.sets}×${scheme.reps || 'max'}` : 'max';
+        return `
+          <div class="rec-item rec-${rec.status}">
+            <div class="rec-name">${name}<span class="rec-target">${setsReps}${scheme.rpe?` @ RPE ${scheme.rpe}`:''}</span></div>
+            <div class="rec-text">${rec.text}</div>
+          </div>`;
+      }).join('')}
+    </div>
+  ` : '';
+
   c.innerHTML = `
     <div class="session-detail"><strong>${sched.focus}</strong> · ${sched.time}</div>
+    ${recsHtml}
+    <h3 style="margin:14px 0 6px; font-size:14px; color:var(--blue);">Session checklist</h3>
     <ul class="checklist">
       ${sched.items.map((it, i) => `
         <li><input type="checkbox" id="chk_${day}_${wk}_${i}"
@@ -858,6 +1164,8 @@ function logSet() {
   document.getElementById('qNotes').value = '';
   document.getElementById('qSet').value = setN ? (+setN+1) : '';
   renderStrengthLog();
+  // Refresh recommendations if Today tab visible
+  if (document.getElementById('tab-today').style.display !== 'none') renderToday();
 }
 
 function addStrengthLog() {
@@ -1085,7 +1393,7 @@ function drawBodyChart() {
 // =============================================================================
 function renderProgress() {
   const list = document.getElementById('progressList');
-  list.innerHTML = TARGETS.map(t => {
+  list.innerHTML = getTargets().map(t => {
     const cur = getCurrentValue(t);
     const hit = t.dir === 'up' ? cur >= t.hard : cur <= t.hard;
     const halfwayThreshold = t.dir === 'up'
@@ -1113,12 +1421,13 @@ function renderProgress() {
 
 function getCurrentValue(target) {
   // Pull from latest strength/run/body or fall back to baseline
-  if (target.k === 'squat') return getMax1RM('Back Squat') || target.base;
-  if (target.k === 'dl') return getMax1RM('Hex Bar DL') || target.base;
-  if (target.k === 'bench') return getMax1RM('Bench Press') || target.base;
+  // Squat: check both Back Squat (gym test days) and Trap Bar Squat (home), use higher
+  if (target.k === 'squat') return Math.max(getMax1RM('Back Squat'), getMax1RM('Trap Bar Squat')) || target.base;
+  if (target.k === 'dl') return Math.max(getMax1RM('Hex Bar DL'), getMax1RM('Trap Bar DL')) || target.base;
+  if (target.k === 'bench') return Math.max(getMax1RM('Bench Press'), getMax1RM('DB Bench Press')) || target.base;
   if (target.k === 'pushup') return getMaxReps('HR Push-ups') || target.base;
   if (target.k === 'pullup') return getMaxReps('Strict Pull-ups') || target.base;
-  if (target.k === 'plank') return getMaxReps('Plank') || target.base;
+  if (target.k === 'plank') return Math.max(getMaxReps('Plank'), getMaxReps('Weighted Plank')) || target.base;
   if (target.k === 'hang') return getMaxReps('Dead Hang') || target.base;
   if (target.k === 'mile') {
     const tt = state.running.filter(r => r.type === 'Mile Test' || r.type === 'Time Trial');
@@ -1241,7 +1550,11 @@ function renderDataStats() {
 // INIT
 // =============================================================================
 load();
+if (!state.profile) state.profile = JSON.parse(JSON.stringify(EMPTY_PROFILE));
+// Migrate legacy profiles that lack metrics structure
+if (!state.profile.metrics) state.profile = JSON.parse(JSON.stringify(EMPTY_PROFILE));
 if (!state.startDate) state.startDate = tomorrowISO();
+updateHeaderMeta();
 // Set today's date defaults
 ['sDate','rDate','bDate'].forEach(id => {
   const el = document.getElementById(id);
