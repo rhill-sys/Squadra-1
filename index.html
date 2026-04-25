@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Squadra" />
+<meta name="theme-color" content="#1F3864" />
+<title>Squadra Tracker</title>
+<style>
+  :root {
+    --navy:#1F3864; --blue:#2F5496; --pale:#F2F6FB; --light:#D9E2F3;
+    --green:#22A06B; --red:#D14343; --yellow:#F4B400;
+    --grey:#606060; --grey2:#909090; --bg:#FAFBFC; --card:#FFFFFF;
+    --border:#E1E5EA;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: #222; line-height: 1.4;
+    -webkit-font-smoothing: antialiased;
+  }
+  header {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--navy); color: #fff; padding: 12px 16px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  header h1 { margin: 0; font-size: 17px; font-weight: 600; }
+  header .meta { font-size: 11px; opacity: .8; }
+  nav {
+    display: flex; background: var(--blue); position: sticky; top: 49px; z-index: 99;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+  }
+  nav button {
+    flex: 1 0 auto; padding: 10px 14px; border: none; background: transparent;
+    color: #fff; font-size: 13px; font-weight: 500; cursor: pointer;
+    border-bottom: 3px solid transparent; white-space: nowrap;
+  }
+  nav button.active { border-bottom-color: #fff; background: rgba(255,255,255,0.08); }
+  main { padding: 16px; max-width: 760px; margin: 0 auto; }
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px; margin-bottom: 14px;
+  }
+  .card h2 { margin: 0 0 12px; font-size: 16px; color: var(--navy); }
+  .card h3 { margin: 14px 0 8px; font-size: 14px; color: var(--blue); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+  .row > * { flex: 1 1 auto; }
+  label { display: block; font-size: 12px; color: var(--grey); font-weight: 600; margin-bottom: 4px; }
+  input, select, textarea {
+    width: 100%; padding: 9px 10px; border: 1px solid var(--border); border-radius: 6px;
+    font-size: 14px; font-family: inherit; background: #fff;
+  }
+  input[type="checkbox"], input[type="radio"] {
+    width: auto; padding: 0; margin: 0;
+  }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--blue); border-color: var(--blue); }
+  button.btn {
+    background: var(--blue); color: #fff; border: none; padding: 10px 16px;
+    border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: background .15s;
+  }
+  button.btn:hover { background: #264478; }
+  button.btn.secondary { background: #fff; color: var(--blue); border: 1px solid var(--blue); }
+  button.btn.danger { background: var(--red); }
+  button.btn.small { padding: 6px 10px; font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 8px 6px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { background: var(--pale); color: var(--navy); font-weight: 600; }
+  tr.alt td { background: #FAFBFD; }
+  .pts-grid {
+    display: grid; grid-template-columns: 1fr auto auto; gap: 4px 12px; align-items: center;
+  }
+  .pts-grid .label { font-size: 13px; }
+  .pts-grid .max { color: var(--grey); font-size: 12px; }
+  .pts-grid input[type=number] {
+    width: 60px; text-align: center; padding: 6px;
+  }
+  .total-bar {
+    background: linear-gradient(90deg, var(--navy) 0%, var(--blue) 100%);
+    color: #fff; padding: 14px; border-radius: 8px; margin-top: 12px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .total-bar .num { font-size: 28px; font-weight: 700; }
+  .total-bar.green { background: linear-gradient(90deg, #1B7C50 0%, #22A06B 100%); }
+  .total-bar.yellow { background: linear-gradient(90deg, #C68B00 0%, #F4B400 100%); }
+  .total-bar.red { background: linear-gradient(90deg, #A02D2D 0%, #D14343 100%); }
+  .pill {
+    display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 11px;
+    font-weight: 600; margin-left: 6px;
+  }
+  .pill.green { background: #DCF5E7; color: #156944; }
+  .pill.red { background: #FBE0E0; color: #8B2A2A; }
+  .pill.yellow { background: #FCEDC4; color: #7B5C00; }
+  .pill.grey { background: #ECEEF1; color: #444; }
+  .log-list { max-height: 380px; overflow-y: auto; margin-top: 10px; }
+  .log-item {
+    padding: 8px 10px; border-bottom: 1px solid var(--border); font-size: 13px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .log-item .meta { color: var(--grey); font-size: 11px; }
+  .delete-btn {
+    background: none; border: none; color: var(--red); cursor: pointer;
+    font-size: 16px; padding: 0 6px;
+  }
+  .progress-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 13px; }
+  .progress-row .name { flex: 0 0 35%; font-weight: 500; }
+  .progress-row .bar {
+    flex: 1; height: 8px; background: var(--light); border-radius: 4px; overflow: hidden;
+  }
+  .progress-row .bar > div { height: 100%; background: var(--blue); transition: width .3s; }
+  .progress-row .val { flex: 0 0 90px; text-align: right; font-size: 12px; color: var(--grey); }
+  .help { font-size: 12px; color: var(--grey); margin-top: -4px; margin-bottom: 10px; }
+  .session-detail {
+    background: var(--pale); padding: 12px; border-radius: 6px; font-size: 13px; margin: 8px 0;
+  }
+  .checklist { list-style: none; padding: 0; margin: 12px 0; }
+  .checklist li {
+    padding: 10px 6px; border-bottom: 1px solid var(--border); display: flex;
+    align-items: flex-start; gap: 12px;
+  }
+  .checklist input[type=checkbox] {
+    width: 20px; height: 20px; flex: 0 0 20px; margin-top: 1px; cursor: pointer;
+  }
+  .checklist label {
+    display: block; flex: 1 1 auto; margin: 0; color: #222; font-size: 14px;
+    font-weight: normal; text-align: left; cursor: pointer; line-height: 1.45;
+  }
+  .checklist li.done label { text-decoration: line-through; color: var(--grey); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .stat { text-align: center; padding: 10px; background: var(--pale); border-radius: 6px; }
+  .stat .num { font-size: 22px; font-weight: 700; color: var(--navy); }
+  .stat .lbl { font-size: 11px; color: var(--grey); text-transform: uppercase; letter-spacing: .5px; }
+  hr.sep { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+  .toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: var(--navy); color: #fff; padding: 10px 18px; border-radius: 6px;
+    font-size: 13px; z-index: 1000; opacity: 0; transition: opacity .2s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+  @media (max-width: 600px) {
+    nav button { font-size: 12px; padding: 9px 10px; }
+    .grid2, .grid3 { grid-template-columns: 1fr; }
+    .row { gap: 6px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Squadra Tracker</h1>
+    <div class="meta">Ryan · 49→50 · 28-week plan</div>
+  </div>
+  <div style="text-align:right">
+    <div id="weekDisplay" class="meta"></div>
+    <div id="phaseDisplay" class="meta"></div>
+  </div>
+</header>
+
+<nav>
+  <button data-tab="today" class="active">Today</button>
+  <button data-tab="squadra">Squadra</button>
+  <button data-tab="strength">Strength</button>
+  <button data-tab="running">Running</button>
+  <button data-tab="body">Body</button>
+  <button data-tab="progress">Progress</button>
+  <button data-tab="plan">Plan</button>
+  <button data-tab="data">Backup</button>
+</nav>
+
+<main>
+
+<!-- TODAY -->
+<section id="tab-today" class="tab">
+  <div class="card">
+    <h2 id="todayTitle">Today's Session</h2>
+    <div class="row">
+      <div>
+        <label>Week #</label>
+        <input type="number" id="currentWeek" min="0" max="28" value="1" />
+      </div>
+      <div>
+        <label>Day Override</label>
+        <select id="dayOverride">
+          <option value="auto">Auto (today)</option>
+          <option value="Mon">Mon</option><option value="Tue">Tue</option>
+          <option value="Wed">Wed</option><option value="Thu">Thu</option>
+          <option value="Fri">Fri</option><option value="Sat">Sat</option>
+          <option value="Sun">Sun</option>
+        </select>
+      </div>
+    </div>
+    <div id="todayContent"></div>
+  </div>
+
+  <div class="card">
+    <h2>Quick Log Set</h2>
+    <p class="help">For the current session. Logs to Strength tab.</p>
+    <div class="row">
+      <div><label>Lift</label>
+        <select id="qLift">
+          <option>Back Squat</option><option>Hex Bar DL</option><option>Bench Press</option>
+          <option>HR Push-ups</option><option>Strict Pull-ups</option><option>1000m Row</option>
+          <option>Plank</option><option>Dead Hang</option><option>Front Squat</option>
+          <option>Bent Row</option><option>Incline DB Press</option><option>OHP</option>
+          <option>Lat Pulldown</option><option>Hip Thrust</option><option>Other</option>
+        </select>
+      </div>
+      <div><label>Set #</label><input type="text" id="qSet" placeholder="1" /></div>
+    </div>
+    <div class="row">
+      <div><label>Weight (lb)</label><input type="number" id="qWeight" /></div>
+      <div><label>Reps</label><input type="number" id="qReps" /></div>
+      <div><label>RPE</label><input type="number" id="qRPE" min="1" max="10" step="0.5" /></div>
+    </div>
+    <div class="row">
+      <input type="text" id="qNotes" placeholder="Notes (optional)" />
+      <button class="btn" onclick="logSet()">Log Set</button>
+    </div>
+  </div>
+</section>
+
+<!-- SQUADRA -->
+<section id="tab-squadra" class="tab" style="display:none">
+  <div class="card">
+    <h2>Squadra Points — Week <span id="sqWeek">1</span></h2>
+    <p class="help">Update each category's points as you complete sessions. Total auto-sums.</p>
+
+    <h3>Squadra 10 (max 38)</h3>
+    <div class="pts-grid">
+      <div class="label">Back Squat</div><input type="number" data-sq="bs" min="0" max="4" /><div class="max">/ 4</div>
+      <div class="label">Hex Bar DL</div><input type="number" data-sq="dl" min="0" max="4" /><div class="max">/ 4</div>
+      <div class="label">Bench Press</div><input type="number" data-sq="bp" min="0" max="4" /><div class="max">/ 4</div>
+      <div class="label">HR Push-ups</div><input type="number" data-sq="push" min="0" max="4" /><div class="max">/ 4</div>
+      <div class="label">Strict Pull-ups</div><input type="number" data-sq="pull" min="0" max="4" /><div class="max">/ 4</div>
+      <div class="label">Grip Workout</div><input type="number" data-sq="grip" min="0" max="4" /><div class="max">/ 4</div>
+      <div class="label">1000m Row</div><input type="number" data-sq="row" min="0" max="4" /><div class="max">/ 4</div>
+      <div class="label">Norwegian 4×4</div><input type="number" data-sq="n44" min="0" max="6" /><div class="max">/ 6</div>
+      <div class="label">Plank Hold</div><input type="number" data-sq="plank" min="0" max="4" /><div class="max">/ 4</div>
+    </div>
+
+    <h3>Other Categories</h3>
+    <div class="pts-grid">
+      <div class="label">Steps (≥12.5k = 10)</div><input type="number" data-sq="steps" min="0" max="10" /><div class="max">/ 10</div>
+      <div class="label">Weekly Challenge</div><input type="number" data-sq="chal" min="0" max="10" /><div class="max">/ 10</div>
+      <div class="label">Food (track or 0.7g/lb P)</div><input type="number" data-sq="food" min="0" max="7" /><div class="max">/ 7</div>
+      <div class="label">No Alcohol</div><input type="number" data-sq="alc" min="0" max="5" /><div class="max">/ 5</div>
+      <div class="label">Team Meeting</div><input type="number" data-sq="mtg" min="0" max="5" /><div class="max">/ 5</div>
+      <div class="label">Flex (capped 25)</div><input type="number" data-sq="flex" min="0" max="25" /><div class="max">/ 25</div>
+    </div>
+
+    <div class="total-bar" id="sqTotalBar">
+      <div>Total this week</div>
+      <div class="num"><span id="sqTotal">0</span> / 100</div>
+    </div>
+
+    <div style="margin-top:14px">
+      <button class="btn" onclick="saveSquadra()">Save Week</button>
+      <button class="btn secondary" onclick="loadPrevSquadra()">Load Previous Week</button>
+      <button class="btn secondary" onclick="resetSquadra()">Reset</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Season History</h2>
+    <table>
+      <thead><tr><th>Wk</th><th>Phase</th><th>Total</th><th>Status</th></tr></thead>
+      <tbody id="sqHistoryBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- STRENGTH -->
+<section id="tab-strength" class="tab" style="display:none">
+  <div class="card">
+    <h2>Log a Set</h2>
+    <div class="row">
+      <div><label>Date</label><input type="date" id="sDate" /></div>
+      <div><label>Wk</label><input type="number" id="sWk" min="0" max="28" /></div>
+      <div><label>Day</label>
+        <select id="sDay">
+          <option>Mon</option><option>Tue</option><option>Wed</option><option>Thu</option>
+          <option>Fri</option><option>Sat</option><option>Sun</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div><label>Lift</label>
+        <select id="sLift">
+          <option>Back Squat</option><option>Hex Bar DL</option><option>Bench Press</option>
+          <option>HR Push-ups</option><option>Strict Pull-ups</option><option>1000m Row</option>
+          <option>Plank</option><option>Dead Hang</option><option>Front Squat</option>
+          <option>Bent Row</option><option>Incline DB Press</option><option>OHP</option>
+          <option>Lat Pulldown</option><option>Hip Thrust</option><option>Walking Lunge</option>
+          <option>Close-Grip Bench</option><option>Pushdowns</option><option>Overhead Tri Ext</option>
+          <option>Weighted Dip</option><option>Cable/DB Fly</option><option>BB Curl</option>
+          <option>Hammer Curl</option><option>Lateral Raise</option><option>Calf Raise</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div><label>Set #</label><input type="text" id="sSet" /></div>
+    </div>
+    <div class="row">
+      <div><label>Weight</label><input type="number" id="sWeight" /></div>
+      <div><label>Reps</label><input type="number" id="sReps" /></div>
+      <div><label>RPE</label><input type="number" id="sRPE" min="1" max="10" step="0.5" /></div>
+    </div>
+    <div class="row">
+      <input type="text" id="sNotes" placeholder="Notes" />
+      <button class="btn" onclick="addStrengthLog()">Add</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Recent Sets</h2>
+    <div class="row">
+      <div><label>Filter by lift</label>
+        <select id="sFilter" onchange="renderStrengthLog()">
+          <option value="">(all)</option>
+        </select>
+      </div>
+    </div>
+    <div class="log-list" id="strengthLogList"></div>
+  </div>
+</section>
+
+<!-- RUNNING -->
+<section id="tab-running" class="tab" style="display:none">
+  <div class="card">
+    <h2>Log a Run</h2>
+    <div class="row">
+      <div><label>Date</label><input type="date" id="rDate" /></div>
+      <div><label>Wk</label><input type="number" id="rWk" min="0" max="28" /></div>
+      <div><label>Type</label>
+        <select id="rType">
+          <option>Easy (Z2)</option><option>Intervals</option><option>Tempo</option>
+          <option>Long</option><option>Time Trial</option><option>Mile Test</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div><label>Distance (mi)</label><input type="number" id="rDist" step="0.01" /></div>
+      <div><label>Time (mm:ss)</label><input type="text" id="rTime" placeholder="22:30" /></div>
+      <div><label>Avg HR</label><input type="number" id="rHR" /></div>
+    </div>
+    <div class="row">
+      <input type="text" id="rNotes" placeholder="Notes (intervals/splits/conditions)" />
+      <button class="btn" onclick="addRunLog()">Add Run</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Run History</h2>
+    <div class="log-list" id="runLogList"></div>
+  </div>
+</section>
+
+<!-- BODY -->
+<section id="tab-body" class="tab" style="display:none">
+  <div class="card">
+    <h2>Body Composition</h2>
+    <p class="help">Weigh AM, fasted. Track 7-day average not single days.</p>
+    <div class="row">
+      <div><label>Date</label><input type="date" id="bDate" /></div>
+      <div><label>Wk</label><input type="number" id="bWk" min="0" max="28" /></div>
+    </div>
+    <div class="row">
+      <div><label>Weight (lb)</label><input type="number" id="bWeight" step="0.1" /></div>
+      <div><label>BF % (est)</label><input type="number" id="bBF" step="0.1" /></div>
+      <div><label>Waist (in)</label><input type="number" id="bWaist" step="0.1" /></div>
+    </div>
+    <div class="row">
+      <input type="text" id="bNotes" placeholder="Notes" />
+      <button class="btn" onclick="addBodyLog()">Add</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Trend</h2>
+    <canvas id="bodyChart" height="160"></canvas>
+  </div>
+
+  <div class="card">
+    <h2>Recent Entries</h2>
+    <div class="log-list" id="bodyLogList"></div>
+  </div>
+</section>
+
+<!-- PROGRESS -->
+<section id="tab-progress" class="tab" style="display:none">
+  <div class="card">
+    <h2>Progress vs Targets</h2>
+    <p class="help">Updates automatically from your latest test/PR entries. Edit "Current" inline if needed.</p>
+    <div id="progressList"></div>
+  </div>
+
+  <div class="card">
+    <h2>Squadra Average</h2>
+    <div class="grid3">
+      <div class="stat"><div class="num" id="statWeeks">0</div><div class="lbl">Weeks logged</div></div>
+      <div class="stat"><div class="num" id="statAvg">0</div><div class="lbl">Avg pts/wk</div></div>
+      <div class="stat"><div class="num" id="statPerfect">0</div><div class="lbl">Perfect (100) weeks</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- PLAN -->
+<section id="tab-plan" class="tab" style="display:none">
+  <div class="card">
+    <h2>Weekly Schedule</h2>
+    <div id="planSchedule"></div>
+  </div>
+  <div class="card">
+    <h2>Strength Progression</h2>
+    <div id="planStrength"></div>
+  </div>
+  <div class="card">
+    <h2>Running Progression</h2>
+    <div id="planRunning"></div>
+  </div>
+  <div class="card">
+    <h2>Diet by Phase</h2>
+    <div id="planDiet"></div>
+  </div>
+</section>
+
+<!-- DATA / BACKUP -->
+<section id="tab-data" class="tab" style="display:none">
+  <div class="card">
+    <h2>Backup & Restore</h2>
+    <p class="help">Data lives in your browser's localStorage. Export regularly to a JSON file as backup.</p>
+    <div class="row">
+      <button class="btn" onclick="exportData()">Export to JSON</button>
+      <button class="btn secondary" onclick="document.getElementById('importFile').click()">Import JSON</button>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)" />
+    </div>
+    <hr class="sep" />
+    <div class="row">
+      <button class="btn danger" onclick="if(confirm('Delete all data? Cannot undo.')) clearAllData()">Wipe All Data</button>
+    </div>
+    <div id="dataStats" style="margin-top:14px; font-size:13px; color: var(--grey);"></div>
+  </div>
+</section>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// =============================================================================
+// DATA LAYER
+// =============================================================================
+const STORAGE_KEY = 'squadra-tracker-v1';
+
+const PHASE_BY_WEEK = {
+  1:'P1',2:'P1',3:'P1',4:'P1',5:'P1',6:'P1',7:'P1',8:'P1 deload',
+  9:'P2',10:'P2',11:'P2',12:'P2',13:'P2',14:'P2',15:'P2',16:'P2 deload',
+  17:'P3',18:'P3',19:'P3',20:'P3 deload',21:'P3',22:'P3',
+  23:'P4',24:'P4',25:'P4',26:'P4 deload',27:'P5 taper',28:'P5 TEST'
+};
+
+const SCHEDULE = {
+  Mon: { focus: "Lower A + Bench Vol + Push-ups + Plank", time: "75 min",
+    items: ["Warmup 7 min (general → dynamic → ramp sets)",
+            "A1: Back Squat 5×5 (RPE 7)",
+            "A2: Plank 3×max-hold (between A1 sets)",
+            "B1: Bench Press 4×6 (RPE 7)",
+            "B2: Walking lunges 3×10/leg",
+            "C: HR Push-ups 3×(max-3)",
+            "D Flex 15 min: Close-grip bench 3×8 + Rope pushdowns 3×12",
+            "GTG pull-ups: 4-6 sets ~50% max throughout day"]
+  },
+  Tue: { focus: "VO2 + Pull + Row + Grip", time: "75 min",
+    items: ["Warmup 7 min",
+            "Norwegian 4×4 on rower: 4×(4 min @ 90-95% HRmax / 3 min easy) = 28 min",
+            "A: Strict pull-ups 4×(max-2)",
+            "B: 1000m row training: 3×500m @ goal pace, 90 sec rest",
+            "C: Farmer carry 4×40m heavy",
+            "D Flex 15 min: HLR 3×12 + Ab wheel 3×10 + Face pulls 3×15",
+            "GTG pull-ups throughout day"]
+  },
+  Wed: { focus: "Lower B + Bench Int + Push-ups + Wtd Plank", time: "75 min",
+    items: ["Warmup 7 min",
+            "A1: Hex bar DL 5×3 (RPE 8)",
+            "A2: HR Push-ups 3×max (between A1)",
+            "B1: Bench Press 4×3 (RPE 8)",
+            "B2: Bent-over barbell row 4×8",
+            "C: Weighted plank 3×max",
+            "D Flex 15 min: Incline DB 3×8-10 + DB fly 3×12",
+            "GTG pull-ups throughout day"]
+  },
+  Thu: { focus: "Aerobic recovery (no strength)", time: "65 min",
+    items: ["30 min easy run @ 9:30-10:00 pace (Z2)",
+            "5 min transition",
+            "30 min Z2 bike or rower",
+            "Light mobility (banked S&R)",
+            "GTG pull-ups optional, low volume"]
+  },
+  Fri: { focus: "Squat Int + Pull 2 + Row 2 + Grip 2", time: "75 min",
+    items: ["Warmup 7 min",
+            "A1: Back Squat 4×3 (RPE 8)",
+            "A2: Front squat 3×6 (alt sets)",
+            "B: Strict pull-ups 3×max",
+            "C: 1000m Row test (every 4th wk) OR 3×500m @ pace",
+            "D: Dead hang 3×max",
+            "E Flex 15 min: Weighted dips 3×6-8 + Overhead tri ext 3×10",
+            "GTG pull-ups throughout day"]
+  },
+  Sat: { focus: "Long Bike + 4×4 embedded + DL Primer", time: "150 min",
+    items: ["Warmup",
+            "Hex bar DL 3×5 @ 65% — light technical primer (NOT a heavy day)",
+            "5 min transition to bike",
+            "Bike: 12 min Z2 warmup",
+            "Norwegian 4×4: 4×(4 min @ 90-95% / 3 min easy) = 28 min",
+            "60 min Z2",
+            "18 min cooldown",
+            "Eat ~50g carb pre, ~40g intra during first 45 min"]
+  },
+  Sun: { focus: "Quality Run + Accessory Block", time: "120 min",
+    items: ["Warmup",
+            "30 min run per progression (see Plan tab)",
+            "Accessory 75 min: OHP 4×8 + Cable row 4×10 + Lat pulldown 3×10",
+            "  + Hip thrust 3×12 + Lat raises 3×12",
+            "  + BB curl 3×10 + Hammer curls 3×10",
+            "  + Calves 4×15 + Band pull-aparts 3×20",
+            "10 min cooldown stretch"]
+  },
+};
+
+const STRENGTH_PROG = [
+  ["1","1-4","165","270","165","190","190","Conservative ramp post-test"],
+  ["1","5-8","175","285","175","200","200","+5 lb/wk if RPE ≤8"],
+  ["1 dl","8 deload","120","200","120","135","135","30% reduction, drop a set"],
+  ["2","9-12","195","320","185","220","215","Smaller deficit, lifts moving"],
+  ["2","13-16","210","335","190","235","220","Wk 14 mid-cycle test"],
+  ["2 dl","16 deload","150","235","135","165","155","Pre-Phase 3 deload"],
+  ["3","17-20","225","360","200","255","220","Surplus phase, push hard"],
+  ["3","21-22","240","390","210","275","230","Volume push"],
+  ["4","23-26","RPE singles","RPE singles","RPE 3s","RPE singles","RPE 3s","Peak phase"],
+  ["4 dl","26 deload","Light","Light","Light","Light","Light","Pre-test deload"],
+  ["5","27-28","Technique","Technique","Technique","TEST wk 28","TEST wk 28","Final test"],
+];
+
+const RUNNING_PROG = [
+  ["1-4","8:10 → 8:00","5 min jog · 6×(2 run / 1 walk) · 5 walk","30 min Z2","Aerobic base"],
+  ["5-8","8:00 → 7:50","5 wu · 20 min @ 9:00-9:30 · 5 cd","30 min Z2","Continuous"],
+  ["9-12","7:50 → 7:35","5 wu · 6×400m @ 1:50 (7:20) w/ 2 min walk · 5 cd","30 Z2","First intervals"],
+  ["13-16","7:35 → 7:20","5 wu · 5×600m @ 2:42 (7:13) w/ 2 min walk · 5 cd","30 Z2 + 2 strides","Wk 14 MID-CYCLE TT"],
+  ["17-20","7:20 → 7:05","5 wu · 4×800m @ 3:32 (7:05) w/ 2 min jog · 5 cd","35 Z2 + 4 strides","Race-pace"],
+  ["21-24","7:05 → 6:50","5 wu · 3×1000m @ 4:15 (6:50) w/ 3 min jog · 5 cd","30 Z2 + 6 strides","Threshold"],
+  ["25-26","6:50 → 6:45","1200m @ 5:05 + 2×400m @ 1:38","20 easy + strides","Sharpen"],
+  ["27","Taper","3×400m @ 1:38 ≈ 22 min","20 min easy","Sharpening"],
+  ["28","6:45 TEST","1 mile all-out","20 very easy","TEST DAY"],
+];
+
+const DIET_PHASES = [
+  ["Phase 1 (1-8)","2,250 (-500)","200 g","210 g","70 g","16% → 12% BF"],
+  ["Phase 2 (9-16)","2,450 (-300)","200 g","260 g","75 g","12% → 10% BF"],
+  ["Phase 3 (17-22)","2,950 (+200)","190 g","360 g","85 g","Lean surplus, push PRs"],
+  ["Phase 4 (23-26)","2,750 (maint)","190 g","320 g","80 g","Stabilize, peak"],
+  ["Phase 5 (27-28)","2,750 (maint)","200 g","330 g","80 g","Taper week"],
+];
+
+const TARGETS = [
+  {k:"squat", name:"Back Squat (lb)", base:225, green:315, hard:365, stretch:385, dir:"up"},
+  {k:"dl", name:"Hex Bar DL (lb)", base:355, green:405, hard:445, stretch:475, dir:"up"},
+  {k:"bench", name:"Bench Press (lb)", base:225, green:245, hard:260, stretch:275, dir:"up"},
+  {k:"pushup", name:"HR Push-ups (2 min)", base:65, green:70, hard:75, stretch:85, dir:"up"},
+  {k:"pullup", name:"Strict Pull-ups", base:11, green:14, hard:16, stretch:20, dir:"up"},
+  {k:"row", name:"1000m Row (sec)", base:210, green:215, hard:205, stretch:195, dir:"down"},
+  {k:"plank", name:"Plank (sec)", base:360, green:360, hard:360, stretch:360, dir:"up"},
+  {k:"hang", name:"Dead Hang (sec)", base:85, green:95, hard:105, stretch:120, dir:"up"},
+  {k:"mile", name:"Mile (sec)", base:490, green:440, hard:420, stretch:405, dir:"down"},
+  {k:"vo2", name:"VO2 max", base:41, green:44, hard:46, stretch:48, dir:"up"},
+  {k:"bf", name:"Body fat %", base:16, green:12, hard:10, stretch:8, dir:"down"},
+];
+
+let state = {
+  squadra: {},     // {weekNum: {bs, dl, bp, ...}}
+  strength: [],    // [{date, wk, day, lift, set, weight, reps, rpe, notes}]
+  running: [],
+  body: [],
+  current: {},     // {squat: 225, ...} - latest PR per metric
+  currentWeek: 1,
+};
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) state = { ...state, ...JSON.parse(raw) };
+  } catch (e) { console.error(e); }
+}
+function save() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (e) {
+    toast("Save failed: " + e.message);
+  }
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+// =============================================================================
+// TABS
+// =============================================================================
+document.querySelectorAll('nav button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.tab').forEach(t => t.style.display = 'none');
+    const tab = document.getElementById('tab-' + btn.dataset.tab);
+    if (tab) tab.style.display = 'block';
+    if (btn.dataset.tab === 'today') renderToday();
+    if (btn.dataset.tab === 'squadra') renderSquadra();
+    if (btn.dataset.tab === 'strength') renderStrengthLog();
+    if (btn.dataset.tab === 'running') renderRunningLog();
+    if (btn.dataset.tab === 'body') { renderBodyLog(); drawBodyChart(); }
+    if (btn.dataset.tab === 'progress') renderProgress();
+    if (btn.dataset.tab === 'plan') renderPlan();
+    if (btn.dataset.tab === 'data') renderDataStats();
+  });
+});
+
+// =============================================================================
+// TODAY
+// =============================================================================
+function renderToday() {
+  const wk = +document.getElementById('currentWeek').value || 1;
+  state.currentWeek = wk;
+  document.getElementById('weekDisplay').textContent = 'Week ' + wk;
+  document.getElementById('phaseDisplay').textContent = PHASE_BY_WEEK[wk] || '-';
+  document.getElementById('sqWeek').textContent = wk;
+
+  let day = document.getElementById('dayOverride').value;
+  if (day === 'auto') {
+    const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    day = days[new Date().getDay()];
+  }
+  document.getElementById('todayTitle').textContent = `Today: ${day} — ${SCHEDULE[day].focus}`;
+
+  const sched = SCHEDULE[day];
+  const c = document.getElementById('todayContent');
+  c.innerHTML = `
+    <div class="session-detail"><strong>${sched.focus}</strong> · ${sched.time}</div>
+    <ul class="checklist">
+      ${sched.items.map((it, i) => `
+        <li><input type="checkbox" id="chk_${day}_${wk}_${i}"
+            onchange="this.parentNode.classList.toggle('done', this.checked); saveCheck('${day}_${wk}_${i}', this.checked)" />
+          <label for="chk_${day}_${wk}_${i}">${it}</label></li>
+      `).join('')}
+    </ul>
+    <div class="session-detail" style="background:#FFF7E0; border-left: 3px solid #F4B400">
+      <strong>Phase ${(PHASE_BY_WEEK[wk] || '').replace(' deload',' DELOAD')}:</strong>
+      ${getProgressionHint(wk, day)}
+    </div>
+  `;
+  // Restore checklist state
+  sched.items.forEach((_, i) => {
+    const key = `${day}_${wk}_${i}`;
+    const v = state.checks && state.checks[key];
+    if (v) {
+      const cb = document.getElementById(`chk_${day}_${wk}_${i}`);
+      if (cb) { cb.checked = true; cb.parentNode.classList.add('done'); }
+    }
+  });
+}
+
+function saveCheck(key, val) {
+  if (!state.checks) state.checks = {};
+  state.checks[key] = val;
+  save();
+}
+
+function getProgressionHint(wk, day) {
+  // Find correct strength progression row
+  const row = STRENGTH_PROG.find(r => {
+    const ws = r[1].split('-').map(s => parseInt(s));
+    if (r[1].includes('deload')) {
+      return wk === parseInt(r[1]);
+    }
+    return wk >= ws[0] && wk <= (ws[1] || ws[0]);
+  });
+  if (!row) return 'Test or taper week.';
+  const hints = [];
+  if (day === 'Mon') hints.push(`Mon BS 5×5: <b>${row[2]}</b> lb · Bench 4×6: <b>${row[4]}</b> lb`);
+  if (day === 'Wed') hints.push(`Wed Hex DL 5×3: <b>${row[3]}</b> lb · Bench 4×3: <b>${row[6]}</b> lb`);
+  if (day === 'Fri') hints.push(`Fri BS 4×3: <b>${row[5]}</b> lb`);
+  if (day === 'Sun' || day === 'Tue' || day === 'Thu') {
+    const runRow = RUNNING_PROG.find(r => {
+      const ws = r[0].split('-').map(s => parseInt(s));
+      if (r[0] === '27' || r[0] === '28') return wk === parseInt(r[0]);
+      return wk >= ws[0] && wk <= (ws[1] || ws[0]);
+    });
+    if (runRow) hints.push(`Mile target: <b>${runRow[1]}</b> · ${day === 'Sun' ? runRow[2] : runRow[3]}`);
+  }
+  return hints.length ? hints.join(' · ') : `Phase ${PHASE_BY_WEEK[wk]}.`;
+}
+
+document.getElementById('currentWeek').addEventListener('change', renderToday);
+document.getElementById('dayOverride').addEventListener('change', renderToday);
+
+// =============================================================================
+// SQUADRA
+// =============================================================================
+function renderSquadra() {
+  const wk = state.currentWeek || 1;
+  document.getElementById('sqWeek').textContent = wk;
+  const data = state.squadra[wk] || {};
+  document.querySelectorAll('[data-sq]').forEach(inp => {
+    inp.value = data[inp.dataset.sq] || '';
+    inp.oninput = updateSquadraTotal;
+  });
+  updateSquadraTotal();
+  renderSquadraHistory();
+}
+
+function updateSquadraTotal() {
+  let total = 0;
+  document.querySelectorAll('[data-sq]').forEach(inp => {
+    total += +inp.value || 0;
+  });
+  document.getElementById('sqTotal').textContent = total;
+  const bar = document.getElementById('sqTotalBar');
+  bar.classList.remove('green', 'yellow', 'red');
+  if (total === 100) bar.classList.add('green');
+  else if (total >= 90) bar.classList.add('yellow');
+  else if (total < 80) bar.classList.add('red');
+}
+
+function saveSquadra() {
+  const wk = state.currentWeek;
+  const data = {};
+  document.querySelectorAll('[data-sq]').forEach(inp => {
+    if (inp.value) data[inp.dataset.sq] = +inp.value;
+  });
+  state.squadra[wk] = data;
+  save();
+  toast(`Week ${wk} saved`);
+  renderSquadraHistory();
+}
+
+function loadPrevSquadra() {
+  const wk = state.currentWeek;
+  if (wk <= 1) return;
+  const prev = state.squadra[wk - 1];
+  if (!prev) return toast('No previous week to copy');
+  document.querySelectorAll('[data-sq]').forEach(inp => {
+    inp.value = prev[inp.dataset.sq] || '';
+  });
+  updateSquadraTotal();
+  toast(`Loaded week ${wk-1} as starting point`);
+}
+
+function resetSquadra() {
+  document.querySelectorAll('[data-sq]').forEach(inp => inp.value = '');
+  updateSquadraTotal();
+}
+
+function renderSquadraHistory() {
+  const tbody = document.getElementById('sqHistoryBody');
+  tbody.innerHTML = '';
+  for (let w = 1; w <= 28; w++) {
+    const data = state.squadra[w];
+    if (!data) continue;
+    const total = Object.values(data).reduce((a,b)=>a+(+b||0),0);
+    const status = total === 100 ? '<span class="pill green">Perfect</span>' :
+                   total >= 90 ? '<span class="pill yellow">Close</span>' :
+                   '<span class="pill red">Miss</span>';
+    const tr = document.createElement('tr');
+    if (w % 2 === 0) tr.classList.add('alt');
+    tr.innerHTML = `<td>${w}</td><td>${PHASE_BY_WEEK[w]}</td><td><b>${total}</b> / 100</td><td>${status}</td>`;
+    tbody.appendChild(tr);
+  }
+  // Stats for progress tab
+  const totals = Object.entries(state.squadra).map(([w,d])=>Object.values(d).reduce((a,b)=>a+(+b||0),0));
+  document.getElementById('statWeeks').textContent = totals.length;
+  document.getElementById('statAvg').textContent = totals.length ? (totals.reduce((a,b)=>a+b,0)/totals.length).toFixed(1) : '0';
+  document.getElementById('statPerfect').textContent = totals.filter(t => t === 100).length;
+}
+
+// =============================================================================
+// STRENGTH LOG
+// =============================================================================
+function logSet() {
+  const lift = document.getElementById('qLift').value;
+  const setN = document.getElementById('qSet').value || '1';
+  const w = +document.getElementById('qWeight').value;
+  const r = +document.getElementById('qReps').value;
+  const rpe = +document.getElementById('qRPE').value;
+  const notes = document.getElementById('qNotes').value;
+  if (!lift) return toast('Pick a lift');
+  const wk = state.currentWeek || 1;
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const day = days[new Date().getDay()];
+  state.strength.push({
+    date: new Date().toISOString().slice(0,10), wk, day, lift, set: setN,
+    weight: w, reps: r, rpe, notes
+  });
+  save();
+  toast(`Logged ${lift} ${w}×${r}`);
+  document.getElementById('qWeight').value = '';
+  document.getElementById('qReps').value = '';
+  document.getElementById('qRPE').value = '';
+  document.getElementById('qNotes').value = '';
+  document.getElementById('qSet').value = setN ? (+setN+1) : '';
+  renderStrengthLog();
+}
+
+function addStrengthLog() {
+  const e = {
+    date: document.getElementById('sDate').value || new Date().toISOString().slice(0,10),
+    wk: +document.getElementById('sWk').value || state.currentWeek || 1,
+    day: document.getElementById('sDay').value,
+    lift: document.getElementById('sLift').value,
+    set: document.getElementById('sSet').value,
+    weight: +document.getElementById('sWeight').value,
+    reps: +document.getElementById('sReps').value,
+    rpe: +document.getElementById('sRPE').value,
+    notes: document.getElementById('sNotes').value,
+  };
+  if (!e.lift) return toast('Pick a lift');
+  state.strength.push(e);
+  save();
+  toast(`Logged ${e.lift} ${e.weight}×${e.reps}`);
+  document.getElementById('sWeight').value = '';
+  document.getElementById('sReps').value = '';
+  document.getElementById('sRPE').value = '';
+  document.getElementById('sNotes').value = '';
+  renderStrengthLog();
+}
+
+function renderStrengthLog() {
+  // Populate filter
+  const filterSel = document.getElementById('sFilter');
+  if (filterSel) {
+    const cur = filterSel.value;
+    const lifts = [...new Set(state.strength.map(e => e.lift))].sort();
+    filterSel.innerHTML = '<option value="">(all)</option>' + lifts.map(l => `<option ${cur===l?'selected':''}>${l}</option>`).join('');
+  }
+  const filter = filterSel ? filterSel.value : '';
+  const list = document.getElementById('strengthLogList');
+  if (!list) return;
+  const items = [...state.strength]
+    .filter(e => !filter || e.lift === filter)
+    .reverse().slice(0, 200);
+  if (items.length === 0) { list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--grey)">No sets logged yet</div>'; return; }
+  list.innerHTML = items.map((e, i) => `
+    <div class="log-item">
+      <div>
+        <strong>${e.lift}</strong> ${e.weight ? e.weight + ' lb' : ''} × ${e.reps || '-'}
+        ${e.rpe ? `<span class="pill grey">RPE ${e.rpe}</span>` : ''}
+        ${e.notes ? `<div class="meta">${e.notes}</div>` : ''}
+      </div>
+      <div style="text-align:right">
+        <div class="meta">Wk ${e.wk} · ${e.day} · ${e.date}</div>
+        <button class="delete-btn" onclick="deleteStrength(${state.strength.length - 1 - state.strength.slice().reverse().indexOf(e)})">×</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function deleteStrength(idx) {
+  if (!confirm('Delete this set?')) return;
+  state.strength.splice(idx, 1);
+  save();
+  renderStrengthLog();
+}
+
+// =============================================================================
+// RUNNING LOG
+// =============================================================================
+function addRunLog() {
+  const e = {
+    date: document.getElementById('rDate').value || new Date().toISOString().slice(0,10),
+    wk: +document.getElementById('rWk').value || state.currentWeek || 1,
+    type: document.getElementById('rType').value,
+    distance: +document.getElementById('rDist').value,
+    time: document.getElementById('rTime').value,
+    hr: +document.getElementById('rHR').value,
+    notes: document.getElementById('rNotes').value,
+  };
+  state.running.push(e);
+  save();
+  toast(`Logged ${e.type} ${e.distance} mi`);
+  ['rDist','rTime','rHR','rNotes'].forEach(id => document.getElementById(id).value = '');
+  renderRunningLog();
+}
+
+function renderRunningLog() {
+  const list = document.getElementById('runLogList');
+  if (!list) return;
+  if (!state.running.length) { list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--grey)">No runs logged yet</div>'; return; }
+  list.innerHTML = state.running.slice().reverse().map((e, idx) => `
+    <div class="log-item">
+      <div>
+        <strong>${e.type}</strong> · ${e.distance || '-'} mi · ${e.time || '-'}
+        ${e.hr ? `<span class="pill grey">HR ${e.hr}</span>` : ''}
+        ${e.notes ? `<div class="meta">${e.notes}</div>` : ''}
+      </div>
+      <div style="text-align:right">
+        <div class="meta">Wk ${e.wk} · ${e.date}</div>
+        <button class="delete-btn" onclick="deleteRun(${state.running.length - 1 - idx})">×</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function deleteRun(idx) {
+  if (!confirm('Delete this run?')) return;
+  state.running.splice(idx, 1);
+  save();
+  renderRunningLog();
+}
+
+// =============================================================================
+// BODY
+// =============================================================================
+function addBodyLog() {
+  const e = {
+    date: document.getElementById('bDate').value || new Date().toISOString().slice(0,10),
+    wk: +document.getElementById('bWk').value || state.currentWeek || 1,
+    weight: +document.getElementById('bWeight').value,
+    bf: +document.getElementById('bBF').value,
+    waist: +document.getElementById('bWaist').value,
+    notes: document.getElementById('bNotes').value,
+  };
+  if (!e.weight && !e.bf) return toast('Enter weight or BF');
+  state.body.push(e);
+  save();
+  toast('Body comp saved');
+  ['bWeight','bBF','bWaist','bNotes'].forEach(id => document.getElementById(id).value = '');
+  renderBodyLog();
+  drawBodyChart();
+}
+
+function renderBodyLog() {
+  const list = document.getElementById('bodyLogList');
+  if (!list) return;
+  if (!state.body.length) { list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--grey)">No entries yet</div>'; return; }
+  list.innerHTML = state.body.slice().reverse().map((e, idx) => `
+    <div class="log-item">
+      <div>
+        ${e.weight ? `<strong>${e.weight} lb</strong>` : ''}
+        ${e.bf ? `<span class="pill grey">${e.bf}% BF</span>` : ''}
+        ${e.waist ? `<span class="pill grey">${e.waist}" waist</span>` : ''}
+        ${e.notes ? `<div class="meta">${e.notes}</div>` : ''}
+      </div>
+      <div style="text-align:right">
+        <div class="meta">Wk ${e.wk} · ${e.date}</div>
+        <button class="delete-btn" onclick="deleteBody(${state.body.length - 1 - idx})">×</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function deleteBody(idx) {
+  if (!confirm('Delete this entry?')) return;
+  state.body.splice(idx, 1);
+  save();
+  renderBodyLog();
+  drawBodyChart();
+}
+
+function drawBodyChart() {
+  const cv = document.getElementById('bodyChart');
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  const w = cv.width = cv.offsetWidth;
+  const h = cv.height = 160;
+  ctx.clearRect(0, 0, w, h);
+  if (!state.body.length) {
+    ctx.fillStyle = '#999'; ctx.font = '12px sans-serif';
+    ctx.fillText('No data yet', w/2 - 30, h/2);
+    return;
+  }
+  const data = state.body.slice().sort((a,b) => a.date.localeCompare(b.date));
+  const weights = data.map(d => d.weight).filter(v => v);
+  const bfs = data.map(d => d.bf).filter(v => v);
+  if (!weights.length && !bfs.length) return;
+
+  const minW = Math.min(...weights, 175) - 2;
+  const maxW = Math.max(...weights, 185) + 2;
+
+  // Weight line
+  ctx.strokeStyle = '#2F5496'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  data.forEach((d, i) => {
+    if (!d.weight) return;
+    const x = 20 + i * (w - 40) / Math.max(data.length - 1, 1);
+    const y = h - 20 - ((d.weight - minW) / (maxW - minW)) * (h - 40);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    ctx.fillStyle = '#2F5496';
+    ctx.fillRect(x - 2, y - 2, 4, 4);
+  });
+  ctx.stroke();
+
+  // Y-axis labels
+  ctx.fillStyle = '#666'; ctx.font = '10px sans-serif';
+  ctx.fillText(maxW.toFixed(0) + ' lb', 4, 16);
+  ctx.fillText(minW.toFixed(0) + ' lb', 4, h - 8);
+
+  // BF line if present
+  if (bfs.length) {
+    const minBF = Math.min(...bfs) - 1;
+    const maxBF = Math.max(...bfs) + 1;
+    ctx.strokeStyle = '#D14343'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    let first = true;
+    data.forEach((d, i) => {
+      if (!d.bf) return;
+      const x = 20 + i * (w - 40) / Math.max(data.length - 1, 1);
+      const y = h - 20 - ((d.bf - minBF) / (maxBF - minBF)) * (h - 40);
+      if (first) { ctx.moveTo(x, y); first = false; } else ctx.lineTo(x, y);
+      ctx.fillStyle = '#D14343';
+      ctx.fillRect(x - 2, y - 2, 4, 4);
+    });
+    ctx.stroke();
+  }
+
+  // Legend
+  ctx.fillStyle = '#2F5496'; ctx.font = '11px sans-serif';
+  ctx.fillText('— Weight', w - 100, 14);
+  if (bfs.length) {
+    ctx.fillStyle = '#D14343';
+    ctx.fillText('— BF %', w - 100, 28);
+  }
+}
+
+// =============================================================================
+// PROGRESS
+// =============================================================================
+function renderProgress() {
+  const list = document.getElementById('progressList');
+  list.innerHTML = TARGETS.map(t => {
+    const cur = getCurrentValue(t);
+    let pct;
+    if (t.dir === 'up') {
+      pct = Math.max(0, Math.min(100, ((cur - t.base) / (t.hard - t.base)) * 100));
+    } else {
+      pct = Math.max(0, Math.min(100, ((t.base - cur) / (t.base - t.hard)) * 100));
+    }
+    const pill = pct >= 100 ? 'green' : pct >= 50 ? 'yellow' : 'grey';
+    const pillTxt = pct >= 100 ? 'Hit' : pct >= 50 ? 'On track' : 'Behind';
+    return `
+      <div class="progress-row">
+        <div class="name">${t.name}</div>
+        <div class="bar"><div style="width:${pct}%"></div></div>
+        <div class="val">${cur} → <b>${t.hard}</b> <span class="pill ${pill}">${pillTxt}</span></div>
+      </div>`;
+  }).join('');
+}
+
+function getCurrentValue(target) {
+  // Pull from latest strength/run/body or fall back to baseline
+  if (target.k === 'squat') return getMax1RM('Back Squat') || target.base;
+  if (target.k === 'dl') return getMax1RM('Hex Bar DL') || target.base;
+  if (target.k === 'bench') return getMax1RM('Bench Press') || target.base;
+  if (target.k === 'pushup') return getMaxReps('HR Push-ups') || target.base;
+  if (target.k === 'pullup') return getMaxReps('Strict Pull-ups') || target.base;
+  if (target.k === 'plank') return getMaxReps('Plank') || target.base;
+  if (target.k === 'hang') return getMaxReps('Dead Hang') || target.base;
+  if (target.k === 'mile') {
+    const tt = state.running.filter(r => r.type === 'Mile Test' || r.type === 'Time Trial');
+    if (tt.length === 0) return target.base;
+    const last = tt[tt.length - 1];
+    if (!last.time) return target.base;
+    const [m, s] = last.time.split(':').map(Number);
+    return m * 60 + (s || 0);
+  }
+  if (target.k === 'bf') {
+    const last = state.body.filter(b => b.bf).slice(-1)[0];
+    return last ? last.bf : target.base;
+  }
+  if (target.k === 'row') {
+    const rows = state.strength.filter(s => s.lift === '1000m Row' && s.notes);
+    return target.base; // can't easily extract
+  }
+  return target.base;
+}
+
+function getMax1RM(lift) {
+  // Estimate from heaviest set: w / (1.0278 - 0.0278 * reps)  [Brzycki]
+  let best = 0;
+  state.strength.filter(s => s.lift === lift && s.weight && s.reps).forEach(s => {
+    if (s.reps === 1) { if (s.weight > best) best = s.weight; return; }
+    const est = s.weight / (1.0278 - 0.0278 * s.reps);
+    if (est > best) best = est;
+  });
+  return Math.round(best);
+}
+
+function getMaxReps(lift) {
+  let max = 0;
+  state.strength.filter(s => s.lift === lift && s.reps).forEach(s => {
+    if (s.reps > max) max = s.reps;
+  });
+  return max;
+}
+
+// =============================================================================
+// PLAN
+// =============================================================================
+function renderPlan() {
+  const sched = document.getElementById('planSchedule');
+  sched.innerHTML = '<table><thead><tr><th>Day</th><th>Focus</th><th>Time</th></tr></thead><tbody>' +
+    Object.entries(SCHEDULE).map(([d, s], i) =>
+      `<tr ${i%2?'class="alt"':''}><td><b>${d}</b></td><td>${s.focus}</td><td>${s.time}</td></tr>`
+    ).join('') + '</tbody></table>';
+
+  const str = document.getElementById('planStrength');
+  str.innerHTML = '<div style="overflow-x:auto"><table><thead><tr><th>Phase</th><th>Wks</th><th>Mon BS</th><th>Wed DL</th><th>Mon BP</th><th>Fri BS</th><th>Wed BP</th></tr></thead><tbody>' +
+    STRENGTH_PROG.map((r, i) =>
+      `<tr ${i%2?'class="alt"':''}><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td><td>${r[6]}</td></tr>`
+    ).join('') + '</tbody></table></div>';
+
+  const run = document.getElementById('planRunning');
+  run.innerHTML = '<div style="overflow-x:auto"><table><thead><tr><th>Wks</th><th>Goal</th><th>Sun Quality</th><th>Thu Easy</th></tr></thead><tbody>' +
+    RUNNING_PROG.map((r, i) =>
+      `<tr ${i%2?'class="alt"':''}><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`
+    ).join('') + '</tbody></table></div>';
+
+  const diet = document.getElementById('planDiet');
+  diet.innerHTML = '<table><thead><tr><th>Phase</th><th>Cal</th><th>P</th><th>C</th><th>F</th><th>Goal</th></tr></thead><tbody>' +
+    DIET_PHASES.map((r, i) =>
+      `<tr ${i%2?'class="alt"':''}><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td></tr>`
+    ).join('') + '</tbody></table>';
+}
+
+// =============================================================================
+// BACKUP
+// =============================================================================
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `squadra-tracker-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Backup downloaded');
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (!confirm('Replace all current data with imported file?')) return;
+      state = { squadra: {}, strength: [], running: [], body: [], current: {}, currentWeek: 1, ...imported };
+      save();
+      toast('Imported');
+      renderToday(); renderSquadraHistory(); renderDataStats();
+    } catch (err) { toast('Bad file: ' + err.message); }
+  };
+  reader.readAsText(file);
+}
+
+function clearAllData() {
+  state = { squadra: {}, strength: [], running: [], body: [], current: {}, currentWeek: 1 };
+  save();
+  toast('Wiped');
+  renderToday(); renderSquadraHistory(); renderDataStats();
+}
+
+function renderDataStats() {
+  const stats = document.getElementById('dataStats');
+  const size = (localStorage.getItem(STORAGE_KEY) || '').length;
+  stats.innerHTML = `
+    <div>Squadra weeks logged: <b>${Object.keys(state.squadra).length}</b></div>
+    <div>Strength sets: <b>${state.strength.length}</b></div>
+    <div>Runs: <b>${state.running.length}</b></div>
+    <div>Body comp entries: <b>${state.body.length}</b></div>
+    <div>Storage used: <b>${(size/1024).toFixed(1)} KB</b></div>
+  `;
+}
+
+// =============================================================================
+// INIT
+// =============================================================================
+load();
+// Set today's date defaults
+['sDate','rDate','bDate'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.value = new Date().toISOString().slice(0,10);
+});
+// Set wk defaults
+['sWk','rWk','bWk'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el && state.currentWeek) el.value = state.currentWeek;
+});
+document.getElementById('currentWeek').value = state.currentWeek || 1;
+renderToday();
+renderSquadraHistory();
+window.addEventListener('resize', () => { if (document.getElementById('tab-body').style.display !== 'none') drawBodyChart(); });
+</script>
+</body>
+</html>
