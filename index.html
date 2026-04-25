@@ -179,6 +179,10 @@
     <h2 id="todayTitle">Today's Session</h2>
     <div class="row">
       <div>
+        <label>Plan Start Date</label>
+        <input type="date" id="startDate" />
+      </div>
+      <div>
         <label>Week #</label>
         <input type="number" id="currentWeek" min="0" max="28" value="1" />
       </div>
@@ -193,6 +197,7 @@
         </select>
       </div>
     </div>
+    <p class="help" id="startDateHint"></p>
     <div id="todayContent"></div>
   </div>
 
@@ -578,6 +583,11 @@ const TARGETS = [
   {k:"bf", name:"Body fat %", base:16, green:12, hard:10, stretch:8, dir:"down"},
 ];
 
+function tomorrowISO() {
+  const d = new Date(); d.setDate(d.getDate() + 1);
+  return d.toISOString().slice(0,10);
+}
+
 let state = {
   squadra: {},     // {weekNum: {bs, dl, bp, ...}}
   strength: [],    // [{date, wk, day, lift, set, weight, reps, rpe, notes}]
@@ -585,7 +595,18 @@ let state = {
   body: [],
   current: {},     // {squat: 225, ...} - latest PR per metric
   currentWeek: 1,
+  startDate: tomorrowISO(),
 };
+
+function computeWeekFromStart(startISO) {
+  if (!startISO) return 1;
+  const start = new Date(startISO + 'T00:00:00');
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const diffDays = Math.floor((today - start) / 86400000);
+  if (diffDays < 0) return 0; // pre-start
+  return Math.min(28, Math.floor(diffDays / 7) + 1);
+}
 
 function load() {
   try {
@@ -633,11 +654,29 @@ document.querySelectorAll('nav button').forEach(btn => {
 // TODAY
 // =============================================================================
 function renderToday() {
-  const wk = +document.getElementById('currentWeek').value || 1;
+  const sdInput = document.getElementById('startDate');
+  if (sdInput.value) state.startDate = sdInput.value;
+  // Auto-set week from start date when start date is in past or today
+  const computedWk = computeWeekFromStart(state.startDate);
+  const wkInput = document.getElementById('currentWeek');
+  // Only auto-set the week if user hasn't manually changed it more than 1 from computed
+  if (!state._userOverrideWeek) wkInput.value = computedWk;
+  const wk = +wkInput.value || 1;
   state.currentWeek = wk;
   document.getElementById('weekDisplay').textContent = 'Week ' + wk;
   document.getElementById('phaseDisplay').textContent = PHASE_BY_WEEK[wk] || '-';
   document.getElementById('sqWeek').textContent = wk;
+  // Hint
+  const hint = document.getElementById('startDateHint');
+  if (state.startDate) {
+    const start = new Date(state.startDate + 'T00:00:00');
+    const today = new Date(); today.setHours(0,0,0,0);
+    const days = Math.floor((today - start) / 86400000);
+    if (days < 0) hint.textContent = `Plan starts ${state.startDate} (in ${-days} days). Test week before that.`;
+    else if (days === 0) hint.textContent = `Plan starts today. Welcome to Week 1.`;
+    else hint.textContent = `Day ${days+1} of plan · Auto-set to Week ${computedWk}. Override the week # if you want.`;
+  }
+  save();
 
   let day = document.getElementById('dayOverride').value;
   if (day === 'auto') {
@@ -704,8 +743,15 @@ function getProgressionHint(wk, day) {
   return hints.length ? hints.join(' · ') : `Phase ${PHASE_BY_WEEK[wk]}.`;
 }
 
-document.getElementById('currentWeek').addEventListener('change', renderToday);
+document.getElementById('currentWeek').addEventListener('change', () => {
+  state._userOverrideWeek = true;
+  renderToday();
+});
 document.getElementById('dayOverride').addEventListener('change', renderToday);
+document.getElementById('startDate').addEventListener('change', () => {
+  state._userOverrideWeek = false;
+  renderToday();
+});
 
 // =============================================================================
 // SQUADRA
@@ -1041,14 +1087,21 @@ function renderProgress() {
   const list = document.getElementById('progressList');
   list.innerHTML = TARGETS.map(t => {
     const cur = getCurrentValue(t);
+    const hit = t.dir === 'up' ? cur >= t.hard : cur <= t.hard;
+    const halfwayThreshold = t.dir === 'up'
+      ? t.base + (t.hard - t.base) * 0.5
+      : t.base - (t.base - t.hard) * 0.5;
+    const onTrack = t.dir === 'up' ? cur >= halfwayThreshold : cur <= halfwayThreshold;
     let pct;
-    if (t.dir === 'up') {
+    if (t.hard === t.base) {
+      pct = hit ? 100 : 0;
+    } else if (t.dir === 'up') {
       pct = Math.max(0, Math.min(100, ((cur - t.base) / (t.hard - t.base)) * 100));
     } else {
       pct = Math.max(0, Math.min(100, ((t.base - cur) / (t.base - t.hard)) * 100));
     }
-    const pill = pct >= 100 ? 'green' : pct >= 50 ? 'yellow' : 'grey';
-    const pillTxt = pct >= 100 ? 'Hit' : pct >= 50 ? 'On track' : 'Behind';
+    const pill = hit ? 'green' : onTrack ? 'yellow' : 'grey';
+    const pillTxt = hit ? 'Hit' : onTrack ? 'On track' : 'Behind';
     return `
       <div class="progress-row">
         <div class="name">${t.name}</div>
@@ -1188,11 +1241,14 @@ function renderDataStats() {
 // INIT
 // =============================================================================
 load();
+if (!state.startDate) state.startDate = tomorrowISO();
 // Set today's date defaults
 ['sDate','rDate','bDate'].forEach(id => {
   const el = document.getElementById(id);
   if (el) el.value = new Date().toISOString().slice(0,10);
 });
+// Start date input
+document.getElementById('startDate').value = state.startDate;
 // Set wk defaults
 ['sWk','rWk','bWk'].forEach(id => {
   const el = document.getElementById(id);
